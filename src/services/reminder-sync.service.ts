@@ -14,19 +14,22 @@ import type { IMedicine } from "@/types";
 import type { ExtractedMedicine } from "@/validations/extracted-medicine";
 
 function medicineToExtracted(medicine: IMedicine): ExtractedMedicine {
+  const foodInstruction =
+    normalizeFoodInstruction(medicine.foodInstructionRaw ?? medicine.foodInstruction) ?? undefined;
+
   return {
     medicineName: medicine.medicineName,
     dosage: medicine.dosage,
     frequency: medicine.frequency,
     duration: medicine.duration,
-    foodInstruction:
-      normalizeFoodInstruction(medicine.foodInstructionRaw ?? medicine.foodInstruction) ??
-      undefined,
+    foodInstruction,
     foodInstructionRaw: medicine.foodInstructionRaw ?? medicine.foodInstruction,
     morning: medicine.timings.morning,
     afternoon: medicine.timings.afternoon,
     evening: medicine.timings.evening,
     night: medicine.timings.night,
+    beforeFood: Boolean(foodInstruction?.startsWith("before_") || foodInstruction === "empty_stomach"),
+    afterFood: Boolean(foodInstruction?.startsWith("after_")),
     reminderTimes: medicine.reminderTimes,
     notes: medicine.notes,
   };

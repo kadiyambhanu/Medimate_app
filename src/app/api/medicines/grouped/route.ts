@@ -2,6 +2,7 @@ import { apiHandler, successResponse } from "@/lib/api-helpers";
 import Medicine from "@/models/Medicine";
 import Prescription from "@/models/Prescription";
 import type { IMedicine } from "@/types";
+import type { Types } from "mongoose";
 
 export interface MedicineGroup {
   prescriptionId: string;
@@ -27,15 +28,15 @@ export const GET = apiHandler(async (userId, request) => {
 
   const [prescriptions, medicines] = await Promise.all([
     Prescription.find({ userId, medicineIds: { $exists: true, $ne: [] } }).sort({ uploadedAt: -1 }),
-    Medicine.find(medicineFilter).sort({ createdAt: -1 }),
+    Medicine.find(medicineFilter).sort({ createdAt: -1 }) as Promise<IMedicine[]>,
   ]);
 
-  const medicineMap = new Map(medicines.map((m) => [m._id.toString(), m]));
+  const medicineMap = new Map<string, IMedicine>(medicines.map((m) => [m._id.toString(), m]));
   const groupedIds = new Set<string>();
 
   const groups: MedicineGroup[] = prescriptions
     .map((prescription) => {
-      const groupMedicines = (prescription.medicineIds || [])
+      const groupMedicines: IMedicine[] = ((prescription.medicineIds || []) as Types.ObjectId[])
         .map((id) => medicineMap.get(id.toString()))
         .filter((medicine): medicine is IMedicine => Boolean(medicine));
 
