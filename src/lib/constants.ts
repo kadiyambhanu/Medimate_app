@@ -1,0 +1,60 @@
+export const APP_NAME = "MediMate";
+export const APP_DESCRIPTION =
+  "Your personal medicine reminder and prescription management companion";
+
+export const MEDICINE_FREQUENCIES = [
+  "Once Daily",
+  "Twice Daily",
+  "Thrice Daily",
+  "Four Times Daily",
+  "As Needed",
+  "Weekly",
+  "Monthly",
+] as const;
+
+export const FOOD_INSTRUCTIONS = [
+  "Before Breakfast",
+  "After Breakfast",
+  "Before Lunch",
+  "After Lunch",
+  "Before Dinner",
+  "After Dinner",
+  "Before Food",
+  "After Food",
+  "Before Sleep",
+  "Empty Stomach",
+] as const;
+
+export const RELATION_TYPES = [
+  "Spouse",
+  "Parent",
+  "Child",
+  "Sibling",
+  "Grandparent",
+  "Friend",
+  "Other",
+] as const;
+
+export const REMINDER_STATUSES = ["pending", "taken", "missed", "snoozed"] as const;
+
+export const MEDICINE_STATUSES = ["active", "inactive", "completed"] as const;
+
+export const NOTIFICATION_STATUSES = ["unread", "read"] as const;
+
+export const LANGUAGES = [
+  { value: "en", label: "English" },
+  { value: "es", label: "Spanish" },
+  { value: "fr", label: "French" },
+  { value: "hi", label: "Hindi" },
+] as const;
+
+export const ITEMS_PER_PAGE = 10;
+
+export const DEFAULT_REMINDER_TIMES = {
+  morning: "08:00",
+  afternoon: "13:00",
+  evening: "17:00",
+  night: "21:00",
+} as const;
+
+export const REMINDER_SCHEDULE_DAYS = 30;
