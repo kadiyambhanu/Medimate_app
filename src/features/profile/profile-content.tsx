@@ -125,7 +125,7 @@ export function ProfileContent() {
                   <Avatar className="h-20 w-20">
                     <AvatarImage src={profileForm.watch("avatar")} />
                     <AvatarFallback className="text-lg bg-primary/10 text-primary">
-                      {user ? getInitials(user.name) : <User />}
+                      {user ? getInitials(user.name || user.hospitalName || "U") : <User />}
                     </AvatarFallback>
                   </Avatar>
                   <div>

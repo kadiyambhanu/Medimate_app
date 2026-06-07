@@ -7,7 +7,7 @@ const UserSchema = new Schema(
     phone: { type: String, trim: true },
     password: { type: String, required: true },
     avatar: { type: String },
-    role: { type: String, enum: ["user", "admin"], default: "user" },
+    role: { type: String, enum: ["user", "SUPER_ADMIN"], default: "user" },
     language: { type: String, default: "en" },
     notificationSettings: {
       email: { type: Boolean, default: true },

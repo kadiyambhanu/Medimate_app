@@ -23,6 +23,8 @@ const ExtractedMedicineSchema = new Schema(
 const PrescriptionSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    appointmentId: { type: Schema.Types.ObjectId, ref: "Appointment", index: true },
+    doctorId: { type: Schema.Types.ObjectId, ref: "Doctor", index: true },
     imageUrl: { type: String, required: true },
     fileName: { type: String, required: true },
     extractedText: { type: String },

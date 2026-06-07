@@ -1,0 +1,19 @@
+"use client";
+
+import { useState } from "react";
+import { SuperAdminSidebar } from "./super-admin-sidebar";
+import { Navbar } from "./navbar";
+
+export function SuperAdminLayout({ children }: { children: React.ReactNode }) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  return (
+    <div className="flex h-screen overflow-hidden">
+      <SuperAdminSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <Navbar onMenuClick={() => setSidebarOpen(true)} />
+        <main className="flex-1 overflow-y-auto bg-muted/30 p-4 lg:p-6">{children}</main>
+      </div>
+    </div>
+  );
+}

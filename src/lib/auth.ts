@@ -12,6 +12,7 @@ export interface JWTPayload {
   userId: string;
   email: string;
   role: string;
+  hospitalId?: string;
 }
 
 export async function hashPassword(password: string): Promise<string> {
@@ -89,6 +90,11 @@ export function getTokenFromRequest(request: NextRequest): string | null {
 export function sanitizeUser(user: IUser) {
   const { password, resetToken, resetTokenExpiry, ...safeUser } = user;
   return safeUser;
+}
+
+export function sanitizeHospital(hospital: Record<string, unknown>) {
+  const { password, ...safeHospital } = hospital;
+  return safeHospital;
 }
 
 export { COOKIE_NAME };

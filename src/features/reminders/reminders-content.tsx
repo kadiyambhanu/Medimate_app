@@ -28,6 +28,12 @@ import {
 import { reminderSchema, type ReminderInput } from "@/validations/reminder";
 import type { IReminder, IMedicine } from "@/types";
 
+function getReminderId(reminder: IReminder): string {
+  const id = reminder._id;
+  if (typeof id === "string") return id;
+  return id?.toString?.() ?? "";
+}
+
 export function RemindersContent() {
   const searchParams = useSearchParams();
   const [reminders, setReminders] = useState<IReminder[]>([]);
@@ -86,8 +92,12 @@ export function RemindersContent() {
   };
 
   const updateStatus = async (id: string, status: "taken" | "missed" | "snoozed") => {
+    if (!id || id === "undefined") {
+      toast.error("Invalid reminder");
+      return;
+    }
     try {
-      await api.post(`/reminders/${id}/${status}`);
+      await api.put(`/reminders/${id}`, { status });
       toast.success(`Marked as ${status}`);
       fetchData();
     } catch (err) {
@@ -182,7 +192,7 @@ export function RemindersContent() {
             const medicine = reminder.medicineId as IMedicine;
 
             return (
-            <Card key={reminder._id.toString()}>
+            <Card key={getReminderId(reminder)}>
               <CardContent className="flex items-center justify-between p-4">
                 <div className="flex items-center gap-4">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
@@ -206,18 +216,18 @@ export function RemindersContent() {
                   {statusBadge(reminder.status)}
                   {reminder.status === "pending" && (
                     <>
-                      <Button size="sm" variant="outline" onClick={() => updateStatus(reminder._id.toString(), "taken")}>
+                      <Button size="sm" variant="outline" onClick={() => updateStatus(getReminderId(reminder), "taken")}>
                         <Check className="h-4 w-4 text-emerald-600" />
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => updateStatus(reminder._id.toString(), "missed")}>
+                      <Button size="sm" variant="outline" onClick={() => updateStatus(getReminderId(reminder), "missed")}>
                         <X className="h-4 w-4 text-red-600" />
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => updateStatus(reminder._id.toString(), "snoozed")}>
+                      <Button size="sm" variant="outline" onClick={() => updateStatus(getReminderId(reminder), "snoozed")}>
                         <Clock className="h-4 w-4" />
                       </Button>
                     </>
                   )}
-                  <Button size="sm" variant="ghost" onClick={() => handleDelete(reminder._id.toString())}>
+                  <Button size="sm" variant="ghost" onClick={() => handleDelete(getReminderId(reminder))}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>

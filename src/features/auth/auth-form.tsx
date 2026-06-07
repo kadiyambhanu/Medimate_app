@@ -37,7 +37,7 @@ export function AuthForm({ mode, resetToken }: AuthFormProps) {
   const searchParams = useSearchParams();
   const { setUser } = useAuth();
 
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const redirectTo = searchParams.get("redirect");
 
   const loginForm = useForm<LoginInput>({ resolver: zodResolver(loginSchema) });
   const registerForm = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
@@ -51,9 +51,17 @@ export function AuthForm({ mode, resetToken }: AuthFormProps) {
     setLoading(true);
     try {
       const res = await api.post("/auth/login", data);
-      setUser(res.data.data);
+      const user = res.data.data;
+      setUser(user);
       toast.success("Welcome back!");
-      router.push(redirectTo);
+      const destination =
+        redirectTo ||
+        (user.role === "SUPER_ADMIN"
+          ? "/super-admin"
+          : user.role === "HOSPITAL"
+            ? "/hospital"
+            : "/dashboard");
+      router.push(destination);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Login failed");
     } finally {
@@ -65,9 +73,17 @@ export function AuthForm({ mode, resetToken }: AuthFormProps) {
     setLoading(true);
     try {
       const res = await api.post("/auth/register", data);
-      setUser(res.data.data);
+      const user = res.data.data;
+      setUser(user);
       toast.success("Account created successfully!");
-      router.push(redirectTo);
+      router.push(
+        redirectTo ||
+          (user.role === "SUPER_ADMIN"
+            ? "/super-admin"
+            : user.role === "HOSPITAL"
+              ? "/hospital"
+              : "/dashboard")
+      );
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -223,7 +239,7 @@ export function AuthForm({ mode, resetToken }: AuthFormProps) {
           </form>
         )}
       </CardContent>
-      <CardFooter className="justify-center">
+      <CardFooter className="flex flex-col gap-2">
         {mode === "login" && (
           <p className="text-sm text-muted-foreground">
             Don&apos;t have an account?{" "}
@@ -239,6 +255,13 @@ export function AuthForm({ mode, resetToken }: AuthFormProps) {
         {(mode === "forgot" || mode === "reset") && (
           <p className="text-sm text-muted-foreground">
             <Link href="/login" className="text-primary hover:underline">Back to login</Link>
+          </p>
+        )}
+        {(mode === "login" || mode === "register") && (
+          <p className="text-xs text-muted-foreground">
+            <Link href="/hospital/login" className="hover:underline">Hospital login</Link>
+            {" · "}
+            <Link href="/superadmin" className="hover:underline">Super admin login</Link>
           </p>
         )}
       </CardFooter>

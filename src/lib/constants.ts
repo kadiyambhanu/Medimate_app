@@ -1,4 +1,27 @@
 export const APP_NAME = "MediMate";
+
+export const ROLES = {
+  PATIENT: "user",
+  SUPER_ADMIN: "SUPER_ADMIN",
+  HOSPITAL: "HOSPITAL",
+} as const;
+
+export type AppRole = (typeof ROLES)[keyof typeof ROLES];
+
+export const APPOINTMENT_STATUSES = ["BOOKED", "COMPLETED", "CANCELLED"] as const;
+
+export const HOSPITAL_STATUSES = ["active", "inactive"] as const;
+
+export const WEEK_DAYS = [
+  "monday",
+  "tuesday",
+  "wednesday",
+  "thursday",
+  "friday",
+  "saturday",
+  "sunday",
+] as const;
+
 export const APP_DESCRIPTION =
   "Your personal medicine reminder and prescription management companion";
 

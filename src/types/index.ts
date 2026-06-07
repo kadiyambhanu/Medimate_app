@@ -7,7 +7,7 @@ export interface IUser extends Document {
   phone?: string;
   password: string;
   avatar?: string;
-  role: "user" | "admin";
+  role: "user" | "SUPER_ADMIN";
   language: string;
   notificationSettings: {
     email: boolean;
@@ -89,9 +89,68 @@ export interface IExtractedMedicine {
   notes?: string;
 }
 
+export interface IHospital extends Document {
+  _id: Types.ObjectId;
+  hospitalName: string;
+  logo?: string;
+  email: string;
+  password: string;
+  phone?: string;
+  address: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  description?: string;
+  status: "active" | "inactive";
+  role: "HOSPITAL";
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IDoctor extends Document {
+  _id: Types.ObjectId;
+  hospitalId: Types.ObjectId | IHospital;
+  name: string;
+  profileImage?: string;
+  specialization: string;
+  qualification?: string;
+  experience: number;
+  consultationFee: number;
+  description?: string;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IDoctorSchedule extends Document {
+  _id: Types.ObjectId;
+  doctorId: Types.ObjectId;
+  availableDays: string[];
+  startTime: string;
+  endTime: string;
+  slotDuration: number;
+  breakTime?: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IAppointment extends Document {
+  _id: Types.ObjectId;
+  userId: Types.ObjectId | IUser;
+  hospitalId: Types.ObjectId | IHospital;
+  doctorId: Types.ObjectId | IDoctor;
+  appointmentDate: Date;
+  slotTime: string;
+  status: "BOOKED" | "COMPLETED" | "CANCELLED";
+  notes?: string;
+  createdAt: Date;
+}
+
 export interface IPrescription extends Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId;
+  appointmentId?: Types.ObjectId;
+  doctorId?: Types.ObjectId;
   imageUrl: string;
   fileName: string;
   extractedText?: string;
@@ -184,14 +243,37 @@ export interface IInventory extends Document {
   updatedAt: Date;
 }
 
+export interface SuperAdminStats {
+  totalHospitals: number;
+  activeHospitals: number;
+  totalDoctors: number;
+  totalAppointments: number;
+  totalPatients: number;
+}
+
+export interface HospitalDashboardStats {
+  totalDoctors: number;
+  activeDoctors: number;
+  todayAppointments: number;
+  totalPatients: number;
+}
+
 export interface AuthUser {
   _id: string;
-  name: string;
+  name?: string;
+  hospitalName?: string;
   email: string;
   phone?: string;
   avatar?: string;
-  role: string;
-  language: string;
-  notificationSettings: IUser["notificationSettings"];
+  logo?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  description?: string;
+  status?: "active" | "inactive";
+  role: "user" | "SUPER_ADMIN" | "HOSPITAL";
+  language?: string;
+  notificationSettings?: IUser["notificationSettings"];
   dailyRoutine?: IUser["dailyRoutine"];
 }

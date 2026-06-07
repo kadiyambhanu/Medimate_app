@@ -5,3 +5,7 @@ export { default as Prescription } from "./Prescription";
 export { default as FamilyMember } from "./FamilyMember";
 export { default as Notification } from "./Notification";
 export { default as Inventory } from "./Inventory";
+export { default as Hospital } from "./Hospital";
+export { default as Doctor } from "./Doctor";
+export { default as DoctorSchedule } from "./DoctorSchedule";
+export { default as Appointment } from "./Appointment";

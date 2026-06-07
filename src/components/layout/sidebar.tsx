@@ -8,15 +8,11 @@ import {
   Bell,
   BellRing,
   FileText,
-  History,
-  Users,
-  BarChart3,
   User,
   X,
   Heart,
-  Package,
-  Settings,
-  Phone,
+  Building2,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -25,17 +21,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/hospitals", label: "Hospitals", icon: Building2 },
+  { href: "/appointments", label: "My Appointments", icon: Calendar },
   { href: "/medicines", label: "Medicines", icon: Pill },
   { href: "/reminders", label: "Reminders", icon: Bell },
   { href: "/prescriptions", label: "Prescriptions", icon: FileText },
-  { href: "/inventory", label: "Inventory", icon: Package },
-  { href: "/history", label: "History", icon: History },
-  { href: "/family", label: "Family", icon: Users },
-  { href: "/emergency", label: "Emergency", icon: Phone },
-  { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/notifications", label: "Notifications", icon: BellRing },
   { href: "/profile", label: "Profile", icon: User },
-  { href: "/settings", label: "Settings", icon: Settings },
 ];
 
 interface SidebarProps {
