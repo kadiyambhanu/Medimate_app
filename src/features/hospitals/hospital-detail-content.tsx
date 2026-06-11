@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { PageLoader } from "@/components/shared/loading-spinner";
+import { HospitalMap } from "@/components/shared/hospital-map";
 import api from "@/lib/api";
 import type { IHospital, IDoctor } from "@/types";
 
@@ -62,6 +63,19 @@ export function HospitalDetailContent({ hospitalId }: { hospitalId: string }) {
           </div>
         </CardContent>
       </Card>
+
+      {hospital.latitude != null && hospital.longitude != null && (
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="mb-4 text-lg font-semibold">Location</h2>
+            <HospitalMap
+              latitude={hospital.latitude}
+              longitude={hospital.longitude}
+              hospitalName={hospital.hospitalName}
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <div>
         <h2 className="mb-4 text-xl font-semibold">Available Doctors ({hospital.totalDoctors})</h2>

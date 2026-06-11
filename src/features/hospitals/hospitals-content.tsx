@@ -8,6 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageLoader } from "@/components/shared/loading-spinner";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
 import api from "@/lib/api";
 import type { IHospital } from "@/types";
 
@@ -26,11 +28,13 @@ export function HospitalsContent() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Hospitals</h1>
-        <p className="text-muted-foreground">Browse hospitals and book appointments</p>
-      </div>
+    <AdminPageShell>
+      <PageHeader
+        title="Hospitals"
+        description="Browse hospitals and book appointments"
+        icon={Building2}
+        badge={hospitals.length || undefined}
+      />
 
       {hospitals.length === 0 ? (
         <EmptyState icon={Building2} title="No hospitals available" description="Check back later" />
@@ -38,7 +42,7 @@ export function HospitalsContent() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {hospitals.map((hospital) => (
             <Link key={hospital._id.toString()} href={`/hospitals/${hospital._id}`}>
-              <Card className="h-full transition-shadow hover:shadow-md">
+              <Card className="h-full shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
                 <CardContent className="p-6">
                   <div className="mb-4 flex items-start gap-4">
                     {hospital.logo ? (
@@ -69,6 +73,6 @@ export function HospitalsContent() {
           ))}
         </div>
       )}
-    </div>
+    </AdminPageShell>
   );
 }

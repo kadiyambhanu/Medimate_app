@@ -12,6 +12,8 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
 import { useAuth } from "@/hooks/use-auth";
 import api from "@/lib/api";
 import { LANGUAGES } from "@/lib/constants";
@@ -98,15 +100,19 @@ export function SettingsContent() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Settings</h1>
-        <p className="text-muted-foreground">Manage your app preferences and account</p>
-      </div>
+    <AdminPageShell className="max-w-2xl">
+      <PageHeader
+        title="Settings"
+        description="Manage your app preferences and account"
+        icon={Settings}
+      />
 
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Settings className="h-5 w-5" /> Appearance</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            {theme === "dark" ? <Moon className="h-4 w-4 text-primary" /> : <Sun className="h-4 w-4 text-primary" />}
+            Appearance
+          </CardTitle>
           <CardDescription>Customize how MediMate looks</CardDescription>
         </CardHeader>
         <CardContent className="flex items-center justify-between">
@@ -118,9 +124,11 @@ export function SettingsContent() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Globe className="h-5 w-5" /> Language</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Globe className="h-4 w-4 text-primary" /> Language
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Select value={form.watch("language")} onValueChange={(v) => form.setValue("language", v)}>
@@ -134,9 +142,11 @@ export function SettingsContent() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" /> Daily Routine</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Clock className="h-4 w-4 text-primary" /> Daily Routine
+          </CardTitle>
           <CardDescription>
             Used to generate reminder times from prescription food instructions
           </CardDescription>
@@ -165,9 +175,11 @@ export function SettingsContent() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2"><Bell className="h-5 w-5" /> Notifications</CardTitle>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Bell className="h-4 w-4 text-primary" /> Notifications
+          </CardTitle>
           <CardDescription>Choose how you want to be notified</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -192,7 +204,7 @@ export function SettingsContent() {
 
       <Separator />
 
-      <Card className="border-destructive/30">
+      <Card className="border-destructive/30 shadow-sm">
         <CardHeader>
           <CardTitle className="text-destructive">Danger Zone</CardTitle>
           <CardDescription>Permanently delete your account and all associated data</CardDescription>
@@ -203,6 +215,6 @@ export function SettingsContent() {
           </Button>
         </CardContent>
       </Card>
-    </div>
+    </AdminPageShell>
   );
 }

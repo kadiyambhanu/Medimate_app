@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI, type GenerativeModel } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 
 /** Stable models — older 1.5/2.0 IDs were shut down June 2026 */
 export const GEMINI_MODEL_FALLBACKS = [
@@ -8,12 +8,42 @@ export const GEMINI_MODEL_FALLBACKS = [
   "gemini-2.5-flash-lite",
 ].filter((m): m is string => Boolean(m));
 
-function getGenAI() {
-  const apiKey = process.env.GEMINI_API_KEY;
+export type GeminiContentPart =
+  | string
+  | { inlineData: { data: string; mimeType: string } };
+
+function getApiKey(): string {
+  const apiKey = process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_API_KEY?.trim();
   if (!apiKey) {
     throw new Error("GEMINI_API_KEY is required. Add it to .env.local");
   }
-  return new GoogleGenerativeAI(apiKey);
+
+  if (apiKey.startsWith("ya29.")) {
+    throw new Error(
+      "GEMINI_API_KEY looks like a short-lived OAuth token. Use an API key from https://aistudio.google.com/apikey instead."
+    );
+  }
+
+  return apiKey;
+}
+
+let genAiClient: GoogleGenAI | null = null;
+
+function getGenAI(): GoogleGenAI {
+  if (!genAiClient) {
+    genAiClient = new GoogleGenAI({ apiKey: getApiKey() });
+  }
+  return genAiClient;
+}
+
+function toContents(parts: GeminiContentPart | GeminiContentPart[]) {
+  const list = Array.isArray(parts) ? parts : [parts];
+  return list.map((part) => {
+    if (typeof part === "string") {
+      return part;
+    }
+    return { inlineData: part.inlineData };
+  });
 }
 
 function isQuotaError(error: unknown): boolean {
@@ -25,6 +55,9 @@ function isModelUnavailableError(error: unknown): boolean {
   const msg = error instanceof Error ? error.message : String(error);
   return (
     msg.includes("404") ||
+    msg.includes("503") ||
+    msg.includes("UNAVAILABLE") ||
+    msg.includes("high demand") ||
     msg.includes("not found") ||
     msg.includes("not supported") ||
     (msg.includes("limit: 0") && msg.includes("free_tier"))
@@ -47,8 +80,14 @@ export function formatGeminiError(error: unknown): string {
     return "Gemini API quota exceeded. Wait 1–2 minutes and try again, or enable billing at https://aistudio.google.com";
   }
 
-  if (msg.includes("API key not valid") || msg.includes("API_KEY_INVALID")) {
-    return "Invalid Gemini API key. Get a key from https://aistudio.google.com/apikey (starts with AIzaSy...)";
+  if (
+    msg.includes("401") ||
+    msg.includes("API key not valid") ||
+    msg.includes("API_KEY_INVALID") ||
+    msg.includes("ACCESS_TOKEN_TYPE_UNSUPPORTED") ||
+    msg.includes("invalid authentication credentials")
+  ) {
+    return "Invalid Gemini API key. Create or verify your key at https://aistudio.google.com/apikey";
   }
 
   return msg.length > 200 ? `${msg.slice(0, 200)}...` : msg;
@@ -58,26 +97,26 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function getModel(modelName: string, jsonMode = false): GenerativeModel {
-  return getGenAI().getGenerativeModel({
-    model: modelName,
-    ...(jsonMode ? { generationConfig: { responseMimeType: "application/json" } } : {}),
-  });
-}
-
 export async function generateGeminiContent(
-  parts: Parameters<GenerativeModel["generateContent"]>[0],
+  parts: GeminiContentPart | GeminiContentPart[],
   options?: { jsonMode?: boolean }
 ): Promise<string> {
   const models = [...new Set(GEMINI_MODEL_FALLBACKS)];
+  const ai = getGenAI();
+  const contents = toContents(parts);
   let lastError: unknown;
 
   for (const modelName of models) {
     try {
-      const model = getModel(modelName, options?.jsonMode);
-      const result = await model.generateContent(parts);
-      const text = result.response.text()?.trim();
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents,
+        ...(options?.jsonMode
+          ? { config: { responseMimeType: "application/json" } }
+          : {}),
+      });
 
+      const text = response.text?.trim();
       if (!text) {
         throw new Error("Gemini returned empty response");
       }
@@ -90,9 +129,14 @@ export async function generateGeminiContent(
         const delay = parseRetryDelayMs(error);
         await sleep(Math.min(delay, 30_000));
         try {
-          const model = getModel(modelName, options?.jsonMode);
-          const result = await model.generateContent(parts);
-          const text = result.response.text()?.trim();
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents,
+            ...(options?.jsonMode
+              ? { config: { responseMimeType: "application/json" } }
+              : {}),
+          });
+          const text = response.text?.trim();
           if (text) return text;
         } catch (retryError) {
           lastError = retryError;

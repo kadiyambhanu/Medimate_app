@@ -9,6 +9,8 @@ export const hospitalSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   country: z.string().optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   description: z.string().optional(),
   status: z.enum(["active", "inactive"]).optional(),
 });
@@ -35,6 +37,8 @@ export const hospitalProfileSchema = z.object({
   city: z.string().optional(),
   state: z.string().optional(),
   country: z.string().optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
   description: z.string().optional(),
 });
 

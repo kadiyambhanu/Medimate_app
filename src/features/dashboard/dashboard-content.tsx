@@ -14,6 +14,8 @@ import {
   CheckCircle2,
   XCircle,
   Clock,
+  LayoutDashboard,
+  ArrowRight,
 } from "lucide-react";
 import {
   BarChart,
@@ -29,7 +31,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { StatCard } from "@/components/shared/stat-card";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
+import { AdminStatCard } from "@/components/super-admin/admin-stat-card";
 import { PageLoader } from "@/components/shared/loading-spinner";
 import { useAuth } from "@/hooks/use-auth";
 import api from "@/lib/api";
@@ -52,56 +56,37 @@ export function DashboardContent() {
   if (loading) return <PageLoader />;
   if (!stats) return null;
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Welcome back, {user?.name?.split(" ")[0]}!
-          </h1>
-          <p className="text-muted-foreground">
-            Here&apos;s your health overview for today
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button asChild size="sm">
-            <Link href="/medicines?action=add">
-              <Plus className="h-4 w-4" />
-              Add Medicine
-            </Link>
-          </Button>
-        </div>
-      </div>
+  const quickLinks = [
+    { href: "/medicines?action=add", label: "Add Medicine", icon: Pill, description: "Track a new medication" },
+    { href: "/reminders?action=add", label: "Set Reminder", icon: Bell, description: "Schedule dose alerts" },
+    { href: "/prescriptions?action=upload", label: "Upload Rx", icon: FileText, description: "Scan a prescription" },
+    { href: "/appointments", label: "Book Appointment", icon: Calendar, description: "Visit a hospital doctor" },
+  ];
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Total Medicines"
-          value={stats.totalMedicines}
-          icon={Pill}
-          iconClassName="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
-        />
-        <StatCard
-          title="Active Medicines"
-          value={stats.activeMedicines}
-          icon={Activity}
-          iconClassName="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
-        />
-        <StatCard
-          title="Today's Doses"
-          value={stats.todayMedicines}
-          icon={Calendar}
-          iconClassName="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
-        />
-        <StatCard
-          title="Missed Today"
-          value={stats.missedMedicines}
-          icon={AlertTriangle}
-          iconClassName="bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400"
-        />
+  return (
+    <AdminPageShell>
+      <PageHeader
+        title={`Welcome back, ${user?.name?.split(" ")[0] || "there"}!`}
+        description="Here's your health overview for today"
+        icon={LayoutDashboard}
+      >
+        <Button asChild>
+          <Link href="/medicines?action=add">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Medicine
+          </Link>
+        </Button>
+      </PageHeader>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <AdminStatCard title="Total Medicines" value={stats.totalMedicines} icon={Pill} variant="blue" />
+        <AdminStatCard title="Active Medicines" value={stats.activeMedicines} icon={Activity} variant="green" />
+        <AdminStatCard title="Today's Doses" value={stats.todayMedicines} icon={Calendar} variant="purple" />
+        <AdminStatCard title="Missed Today" value={stats.missedMedicines} icon={AlertTriangle} variant="orange" />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="shadow-sm lg:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />
@@ -133,10 +118,10 @@ export function DashboardContent() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Bell className="h-4 w-4 text-primary" />
               Upcoming Reminders
             </CardTitle>
           </CardHeader>
@@ -145,7 +130,7 @@ export function DashboardContent() {
               <p className="text-sm text-muted-foreground">No upcoming reminders</p>
             ) : (
               stats.upcomingReminders.map((reminder) => (
-                <div key={reminder._id.toString()} className="flex items-center justify-between rounded-lg border p-3">
+                <div key={reminder._id.toString()} className="flex items-center justify-between rounded-lg border bg-muted/30 p-3">
                   <div>
                     <p className="text-sm font-medium">
                       {(reminder.medicineId as { medicineName?: string })?.medicineName}
@@ -167,9 +152,10 @@ export function DashboardContent() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+            <CardTitle className="text-base">Recent Activity</CardTitle>
+            <CardDescription>Your latest medicine events</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {stats.recentActivity.length === 0 ? (
@@ -194,38 +180,33 @@ export function DashboardContent() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle className="text-base">Quick Actions</CardTitle>
+            <CardDescription>Common tasks to stay on track</CardDescription>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="h-auto flex-col gap-2 py-4" asChild>
-              <Link href="/medicines?action=add">
-                <Pill className="h-6 w-6 text-primary" />
-                <span>Add Medicine</span>
-              </Link>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 py-4" asChild>
-              <Link href="/reminders?action=add">
-                <Bell className="h-6 w-6 text-primary" />
-                <span>Set Reminder</span>
-              </Link>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 py-4" asChild>
-              <Link href="/prescriptions?action=upload">
-                <FileText className="h-6 w-6 text-primary" />
-                <span>Upload Rx</span>
-              </Link>
-            </Button>
-            <Button variant="outline" className="h-auto flex-col gap-2 py-4" asChild>
-              <Link href="/reports">
-                <TrendingUp className="h-6 w-6 text-primary" />
-                <span>View Reports</span>
-              </Link>
-            </Button>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {quickLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="group flex items-center gap-3 rounded-xl border bg-card p-4 transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                    <link.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium">{link.label}</p>
+                    <p className="text-xs text-muted-foreground">{link.description}</p>
+                  </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+                </Link>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
-    </div>
+    </AdminPageShell>
   );
 }

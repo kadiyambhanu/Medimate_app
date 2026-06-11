@@ -2,12 +2,15 @@
 
 import { useEffect } from "react";
 import { Bell, CheckCheck, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageLoader } from "@/components/shared/loading-spinner";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
 import { useNotificationStore } from "@/hooks/use-notifications";
 
 export function NotificationsContent() {
@@ -27,19 +30,39 @@ export function NotificationsContent() {
     return colors[type] || colors.system;
   };
 
+  const unreadCount = notifications.filter((n) => n.status === "unread").length;
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteNotification(id);
+      toast.success("Notification deleted");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to delete notification");
+    }
+  };
+
+  const handleMarkAsRead = async (id: string) => {
+    try {
+      await markAsRead(id);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to update notification");
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Notifications</h1>
-          <p className="text-muted-foreground">Stay updated on your medicine reminders</p>
-        </div>
-        {notifications.some((n) => n.status === "unread") && (
+    <AdminPageShell>
+      <PageHeader
+        title="Notifications"
+        description="Stay updated on your medicine reminders"
+        icon={Bell}
+        badge={unreadCount || undefined}
+      >
+        {unreadCount > 0 && (
           <Button variant="outline" onClick={markAllAsRead}>
-            <CheckCheck className="h-4 w-4" /> Mark all as read
+            <CheckCheck className="mr-2 h-4 w-4" /> Mark all as read
           </Button>
         )}
-      </div>
+      </PageHeader>
 
       {isLoading ? (
         <PageLoader />
@@ -50,7 +73,7 @@ export function NotificationsContent() {
           {notifications.map((notification) => (
             <Card
               key={notification._id.toString()}
-              className={notification.status === "unread" ? "border-primary/30 bg-primary/5" : ""}
+              className={`shadow-sm ${notification.status === "unread" ? "border-primary/30 bg-primary/5" : ""}`}
             >
               <CardContent className="flex items-start justify-between p-4">
                 <div className="flex gap-3">
@@ -73,7 +96,7 @@ export function NotificationsContent() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => markAsRead(notification._id.toString())}
+                      onClick={() => handleMarkAsRead(String(notification._id))}
                     >
                       <CheckCheck className="h-4 w-4" />
                     </Button>
@@ -82,7 +105,7 @@ export function NotificationsContent() {
                     size="sm"
                     variant="ghost"
                     className="text-destructive"
-                    onClick={() => deleteNotification(notification._id.toString())}
+                    onClick={() => handleDelete(String(notification._id))}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -92,6 +115,6 @@ export function NotificationsContent() {
           ))}
         </div>
       )}
-    </div>
+    </AdminPageShell>
   );
 }

@@ -3,6 +3,14 @@ import { doctorSchema, doctorStatusSchema } from "@/validations/doctor";
 import Doctor from "@/models/Doctor";
 import DoctorSchedule from "@/models/DoctorSchedule";
 
+export const GET = hospitalParamsHandler(async (hospitalId, _auth, _request, id) => {
+  const doctor = await Doctor.findOne({ _id: id, hospitalId }).lean();
+  if (!doctor) return errorResponse("Doctor not found", 404);
+
+  const schedule = await DoctorSchedule.findOne({ doctorId: id }).lean();
+  return successResponse({ ...doctor, schedule: schedule ?? null });
+});
+
 export const PUT = hospitalParamsHandler(async (hospitalId, _auth, request, id) => {
   const doctor = await Doctor.findOne({ _id: id, hospitalId });
   if (!doctor) return errorResponse("Doctor not found", 404);

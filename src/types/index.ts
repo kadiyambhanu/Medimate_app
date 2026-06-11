@@ -100,6 +100,8 @@ export interface IHospital extends Document {
   city?: string;
   state?: string;
   country?: string;
+  latitude?: number;
+  longitude?: number;
   description?: string;
   status: "active" | "inactive";
   role: "HOSPITAL";

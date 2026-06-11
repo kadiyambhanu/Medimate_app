@@ -12,6 +12,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageLoader } from "@/components/shared/loading-spinner";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
 import { MedicineForm } from "./medicine-form";
 import { MedicineCard } from "./medicine-card";
 import api from "@/lib/api";
@@ -119,20 +121,20 @@ export function MedicinesContent() {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Medicines</h1>
-          <p className="text-muted-foreground">
-            Medicines grouped by prescription — click a prescription to view its medications
-          </p>
-        </div>
+    <AdminPageShell>
+      <PageHeader
+        title="Medicines"
+        description="Medicines grouped by prescription — click a prescription to view its medications"
+        icon={Pill}
+        badge={data?.total}
+      >
         <Button onClick={() => { setEditMedicine(null); setDialogOpen(true); }}>
-          <Plus className="h-4 w-4" /> Add Medicine
+          <Plus className="mr-2 h-4 w-4" /> Add Medicine
         </Button>
-      </div>
+      </PageHeader>
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <Card className="shadow-sm">
+        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -151,7 +153,8 @@ export function MedicinesContent() {
             <SelectItem value="completed">Completed</SelectItem>
           </SelectContent>
         </Select>
-      </div>
+        </CardContent>
+      </Card>
 
       {loading ? (
         <PageLoader />
@@ -275,6 +278,6 @@ export function MedicinesContent() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 }

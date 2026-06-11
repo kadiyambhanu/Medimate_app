@@ -1,15 +1,20 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Upload, FileText, Check } from "lucide-react";
+import { Upload, FileText, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
+import { DataCard } from "@/components/super-admin/data-card";
+import { EmptyState } from "@/components/shared/empty-state";
 import { PageLoader } from "@/components/shared/loading-spinner";
 import api from "@/lib/api";
 import type { IPrescription, IUser, IAppointment } from "@/types";
@@ -112,29 +117,34 @@ export function PrescriptionsAdminContent() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Prescription Management</h1>
-        <p className="text-muted-foreground">Upload prescriptions and attach to users</p>
-      </div>
+    <AdminPageShell>
+      <PageHeader
+        title="Prescriptions"
+        description="Upload prescriptions and attach them to patients"
+        icon={FileText}
+        badge={prescriptions.length}
+      />
 
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Upload className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Upload className="h-4 w-4 text-primary" />
             Upload Prescription
           </CardTitle>
+          <CardDescription>Select a patient, attach an optional appointment, and upload the prescription file</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleUpload} className="space-y-4">
+          <form onSubmit={handleUpload} className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
-                <Label>User</Label>
+                <Label>Patient *</Label>
                 <Select value={userId} onValueChange={setUserId}>
-                  <SelectTrigger><SelectValue placeholder="Select user" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Select patient" /></SelectTrigger>
                   <SelectContent>
                     {users.map((u) => (
-                      <SelectItem key={u._id.toString()} value={u._id.toString()}>{u.name} ({u.email})</SelectItem>
+                      <SelectItem key={u._id.toString()} value={u._id.toString()}>
+                        {u.name} ({u.email})
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -153,66 +163,81 @@ export function PrescriptionsAdminContent() {
                 </Select>
               </div>
             </div>
+
             <div className="space-y-2">
-              <Label>Prescription Image</Label>
-              <input
-                type="file"
-                accept="image/*,.pdf"
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                className="block w-full text-sm"
-              />
+              <Label>Prescription File *</Label>
+              <div className="flex items-center gap-3">
+                <Input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  className="cursor-pointer"
+                />
+              </div>
+              {file && <p className="text-xs text-muted-foreground">Selected: {file.name}</p>}
             </div>
-            <label className="flex items-center gap-2 text-sm">
+
+            <label className="flex items-center gap-2 rounded-lg border bg-muted/30 px-3 py-2.5 text-sm">
               <Checkbox checked={autoApply} onCheckedChange={(v) => setAutoApply(!!v)} />
               Auto-create medicines and reminders after OCR
             </label>
+
             <Button type="submit" disabled={uploading || !file || !userId}>
-              {uploading ? "Processing..." : "Upload & Process"}
+              {uploading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload & Process
+                </>
+              )}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      {prescriptions.length > 0 && (
-        <div className="rounded-lg border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>File</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Medicines</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {prescriptions.map((rx) => (
-                <TableRow key={rx._id.toString()}>
-                  <TableCell>{rx.fileName}</TableCell>
-                  <TableCell>
-                    <Badge>{rx.ocrStatus}</Badge>
-                  </TableCell>
-                  <TableCell>{rx.extractedMedicines?.length ?? 0}</TableCell>
-                  <TableCell className="text-right">
-                    {rx.ocrStatus === "completed" && (
-                      <Button size="sm" onClick={() => handleApply(rx._id.toString())}>
-                        <Check className="mr-1 h-4 w-4" />
-                        Apply
-                      </Button>
-                    )}
-                  </TableCell>
+      {prescriptions.length === 0 ? (
+        <EmptyState icon={FileText} title="No prescriptions yet" description="Upload a prescription to get started" />
+      ) : (
+        <DataCard title="Uploaded Prescriptions" count={prescriptions.length}>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>File</TableHead>
+                  <TableHead>OCR Status</TableHead>
+                  <TableHead>Medicines Found</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {prescriptions.map((rx) => (
+                  <TableRow key={rx._id.toString()}>
+                    <TableCell className="font-medium">{rx.fileName}</TableCell>
+                    <TableCell>
+                      <Badge variant={rx.ocrStatus === "completed" ? "default" : "secondary"}>
+                        {rx.ocrStatus}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{rx.extractedMedicines?.length ?? 0}</TableCell>
+                    <TableCell className="text-right">
+                      {rx.ocrStatus === "completed" && (
+                        <Button size="sm" onClick={() => handleApply(rx._id.toString())}>
+                          <Check className="mr-1 h-4 w-4" />
+                          Apply
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DataCard>
       )}
-
-      {prescriptions.length === 0 && (
-        <div className="flex flex-col items-center py-12 text-muted-foreground">
-          <FileText className="mb-4 h-12 w-12" />
-          <p>Upload a prescription to get started</p>
-        </div>
-      )}
-    </div>
+    </AdminPageShell>
   );
 }

@@ -1,14 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Clock } from "lucide-react";
+import { Clock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
+import { DataCard } from "@/components/super-admin/data-card";
 import { PageLoader } from "@/components/shared/loading-spinner";
 import { WEEK_DAYS } from "@/lib/constants";
 import api from "@/lib/api";
@@ -87,63 +91,102 @@ export function HospitalSchedulesContent() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Doctor Schedules</h1>
-        <p className="text-muted-foreground">Configure availability and appointment slots</p>
-      </div>
+    <AdminPageShell>
+      <PageHeader
+        title="Doctor Schedules"
+        description="Configure availability and appointment slots"
+        icon={Clock}
+        badge={schedules.length}
+      />
 
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" />Add / Edit Schedule</CardTitle></CardHeader>
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Clock className="h-4 w-4 text-primary" />
+            Add / Edit Schedule
+          </CardTitle>
+          <CardDescription>Set working days, hours, and slot duration for a doctor</CardDescription>
+        </CardHeader>
         <CardContent>
-          <form onSubmit={handleSave} className="space-y-4">
+          <form onSubmit={handleSave} className="space-y-5">
             <div className="space-y-2">
               <Label>Doctor</Label>
               <Select value={doctorId} onValueChange={setDoctorId}>
-                <SelectTrigger><SelectValue placeholder="Select doctor" /></SelectTrigger>
+                <SelectTrigger className="max-w-sm"><SelectValue placeholder="Select doctor" /></SelectTrigger>
                 <SelectContent>
-                  {doctors.map((d) => <SelectItem key={d._id.toString()} value={d._id.toString()}>{d.name}</SelectItem>)}
+                  {doctors.map((d) => (
+                    <SelectItem key={d._id.toString()} value={d._id.toString()}>{d.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
             <div className="flex flex-wrap gap-3">
               {WEEK_DAYS.map((day) => (
-                <label key={day} className="flex items-center gap-2 text-sm capitalize">
+                <label key={day} className="flex items-center gap-2 rounded-lg border px-3 py-2 text-sm capitalize transition-colors hover:bg-muted/50">
                   <Checkbox checked={form.availableDays.includes(day)} onCheckedChange={() => toggleDay(day)} />
                   {day}
                 </label>
               ))}
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2"><Label>Start Time</Label><Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} /></div>
-              <div className="space-y-2"><Label>End Time</Label><Input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} /></div>
-              <div className="space-y-2"><Label>Slot Duration (min)</Label><Input type="number" value={form.slotDuration} onChange={(e) => setForm({ ...form, slotDuration: Number(e.target.value) })} /></div>
-              <div className="space-y-2"><Label>Break Time</Label><Input type="time" value={form.breakTime} onChange={(e) => setForm({ ...form, breakTime: e.target.value })} /></div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="space-y-2">
+                <Label>Start Time</Label>
+                <Input type="time" value={form.startTime} onChange={(e) => setForm({ ...form, startTime: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>End Time</Label>
+                <Input type="time" value={form.endTime} onChange={(e) => setForm({ ...form, endTime: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Slot Duration (min)</Label>
+                <Input type="number" value={form.slotDuration} onChange={(e) => setForm({ ...form, slotDuration: Number(e.target.value) })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Break Time</Label>
+                <Input type="time" value={form.breakTime} onChange={(e) => setForm({ ...form, breakTime: e.target.value })} />
+              </div>
             </div>
-            <Button type="submit" disabled={saving || !doctorId}>{saving ? "Saving..." : "Save Schedule"}</Button>
+            <Button type="submit" disabled={saving || !doctorId}>
+              {saving ? "Saving..." : "Save Schedule"}
+            </Button>
           </form>
         </CardContent>
       </Card>
 
-      <div className="grid gap-4">
-        {schedules.map((schedule) => {
-          const doctor = typeof schedule.doctorId === "object" ? schedule.doctorId : null;
-          return (
-            <Card key={schedule._id.toString()}>
-              <CardContent className="flex items-center justify-between p-4">
-                <div>
-                  <p className="font-medium">{doctor?.name || "Doctor"}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {schedule.startTime} - {schedule.endTime} · {schedule.slotDuration}min slots
-                  </p>
-                  <p className="text-sm capitalize">{schedule.availableDays.join(", ")}</p>
+      {schedules.length > 0 && (
+        <DataCard title="Active Schedules" description="Configured doctor availability" count={schedules.length}>
+          <div className="divide-y">
+            {schedules.map((schedule) => {
+              const doctor = typeof schedule.doctorId === "object" ? schedule.doctorId : null;
+              return (
+                <div key={schedule._id.toString()} className="flex items-center justify-between gap-4 p-4">
+                  <div className="min-w-0 space-y-1.5">
+                    <p className="font-medium">{doctor?.name || "Doctor"}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {schedule.startTime} – {schedule.endTime} · {schedule.slotDuration} min slots
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {schedule.availableDays.map((day) => (
+                        <Badge key={day} variant="outline" className="capitalize text-xs font-normal">
+                          {day}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="shrink-0 text-destructive hover:text-destructive"
+                    onClick={() => handleDelete(schedule._id.toString())}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
-                <Button variant="destructive" size="sm" onClick={() => handleDelete(schedule._id.toString())}>Delete</Button>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-    </div>
+              );
+            })}
+          </div>
+        </DataCard>
+      )}
+    </AdminPageShell>
   );
 }

@@ -7,9 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
+import { DataCard } from "@/components/super-admin/data-card";
+import { EmptyState } from "@/components/shared/empty-state";
 import { PageLoader } from "@/components/shared/loading-spinner";
 import api from "@/lib/api";
 
@@ -73,20 +77,30 @@ export function HospitalPrescriptionsContent() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Prescriptions</h1>
-        <p className="text-muted-foreground">Upload and manage patient prescriptions</p>
-      </div>
+    <AdminPageShell>
+      <PageHeader
+        title="Prescriptions"
+        description="Upload and manage patient prescriptions"
+        icon={FileText}
+        badge={prescriptions.length}
+      />
 
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Upload className="h-5 w-5" />Upload Prescription</CardTitle></CardHeader>
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Upload className="h-4 w-4 text-primary" />
+            Upload Prescription
+          </CardTitle>
+          <CardDescription>Attach a prescription image to a patient appointment</CardDescription>
+        </CardHeader>
         <CardContent>
           <form onSubmit={handleUpload} className="space-y-4">
             <div className="space-y-2">
               <Label>Appointment</Label>
               <Select value={appointmentId} onValueChange={setAppointmentId}>
-                <SelectTrigger><SelectValue placeholder="Select appointment" /></SelectTrigger>
+                <SelectTrigger className="max-w-lg">
+                  <SelectValue placeholder="Select appointment" />
+                </SelectTrigger>
                 <SelectContent>
                   {appointments.map((a) => {
                     const user = a.userId as { name?: string } | null;
@@ -101,7 +115,15 @@ export function HospitalPrescriptionsContent() {
             </div>
             <div className="space-y-2">
               <Label>Prescription Image</Label>
-              <input type="file" accept="image/*,.pdf" onChange={(e) => setFile(e.target.files?.[0] ?? null)} className="block w-full text-sm" />
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                  className="block w-full text-sm file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90"
+                />
+              </div>
+              {file && <p className="text-xs text-muted-foreground">Selected: {file.name}</p>}
             </div>
             <label className="flex items-center gap-2 text-sm">
               <Checkbox checked={autoApply} onCheckedChange={(v) => setAutoApply(!!v)} />
@@ -114,39 +136,46 @@ export function HospitalPrescriptionsContent() {
         </CardContent>
       </Card>
 
-      {prescriptions.length > 0 ? (
-        <div className="rounded-lg border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Patient</TableHead>
-                <TableHead>Doctor</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Date</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {prescriptions.map((rx) => {
-                const user = rx.userId as { name?: string } | null;
-                const doctor = rx.doctorId as { name?: string } | null;
-                return (
-                  <TableRow key={String(rx._id)}>
-                    <TableCell>{user?.name}</TableCell>
-                    <TableCell>{doctor?.name}</TableCell>
-                    <TableCell><Badge>{String(rx.ocrStatus)}</Badge></TableCell>
-                    <TableCell>{rx.uploadedAt ? new Date(String(rx.uploadedAt)).toLocaleDateString() : "-"}</TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+      {prescriptions.length === 0 ? (
+        <EmptyState
+          icon={FileText}
+          title="No prescriptions yet"
+          description="Upload a prescription after a patient appointment"
+        />
       ) : (
-        <div className="flex flex-col items-center py-12 text-muted-foreground">
-          <FileText className="mb-4 h-12 w-12" />
-          <p>No prescriptions yet</p>
-        </div>
+        <DataCard title="All Prescriptions" description="Uploaded patient prescriptions" count={prescriptions.length}>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Patient</TableHead>
+                  <TableHead>Doctor</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Date</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {prescriptions.map((rx) => {
+                  const user = rx.userId as { name?: string } | null;
+                  const doctor = rx.doctorId as { name?: string } | null;
+                  return (
+                    <TableRow key={String(rx._id)}>
+                      <TableCell className="font-medium">{user?.name || "—"}</TableCell>
+                      <TableCell>{doctor?.name || "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{String(rx.ocrStatus)}</Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {rx.uploadedAt ? new Date(String(rx.uploadedAt)).toLocaleDateString() : "—"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </DataCard>
       )}
-    </div>
+    </AdminPageShell>
   );
 }

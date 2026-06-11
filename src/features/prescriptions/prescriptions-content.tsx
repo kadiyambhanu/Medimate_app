@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageLoader } from "@/components/shared/loading-spinner";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
 import { PrescriptionReview } from "@/features/prescriptions/prescription-review";
 import { DailyRoutineDialog } from "@/features/prescriptions/daily-routine-dialog";
 import api from "@/lib/api";
@@ -165,10 +167,16 @@ export function PrescriptionsContent() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Delete this prescription?")) return;
+    if (
+      !confirm(
+        "Delete this prescription? All medicines and reminders created from it will also be removed."
+      )
+    ) {
+      return;
+    }
     try {
-      await api.delete(`/prescriptions/${id}`);
-      toast.success("Prescription deleted");
+      const res = await api.delete(`/prescriptions/${id}`);
+      toast.success(res.data.message || "Prescription deleted");
       fetchPrescriptions();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Delete failed");
@@ -182,14 +190,13 @@ export function PrescriptionsContent() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Prescriptions</h1>
-          <p className="text-muted-foreground">
-            Upload a prescription, review extracted medicines, and confirm personalized reminders
-          </p>
-        </div>
+    <AdminPageShell>
+      <PageHeader
+        title="Prescriptions"
+        description="Upload a prescription, review extracted medicines, and confirm personalized reminders"
+        icon={FileText}
+        badge={prescriptions.length || undefined}
+      >
         <div>
           <input
             ref={fileRef}
@@ -201,18 +208,18 @@ export function PrescriptionsContent() {
           <Button onClick={() => fileRef.current?.click()} disabled={uploading}>
             {uploading ? (
               <>
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Scanning...
               </>
             ) : (
               <>
-                <Upload className="h-4 w-4" />
+                <Upload className="mr-2 h-4 w-4" />
                 Upload Prescription
               </>
             )}
           </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {uploading && uploadStage && (
         <div className="flex items-center gap-3 rounded-lg border border-dashed p-4 text-sm text-muted-foreground">
@@ -346,6 +353,6 @@ export function PrescriptionsContent() {
           )}
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 }

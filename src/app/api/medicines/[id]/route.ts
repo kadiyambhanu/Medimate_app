@@ -2,6 +2,9 @@ import { NextRequest } from "next/server";
 import { withAuthParams, successResponse, errorResponse } from "@/lib/api-helpers";
 import { medicineSchema } from "@/validations/medicine";
 import Medicine from "@/models/Medicine";
+import Prescription from "@/models/Prescription";
+import Reminder from "@/models/Reminder";
+import Inventory from "@/models/Inventory";
 
 export async function GET(request: NextRequest, context: { params: Promise<{ id: string }> }) {
   return withAuthParams(request, context, async (userId, _req, id) => {
@@ -30,6 +33,13 @@ export async function DELETE(request: NextRequest, context: { params: Promise<{ 
   return withAuthParams(request, context, async (userId, _req, id) => {
     const medicine = await Medicine.findOneAndDelete({ _id: id, userId });
     if (!medicine) return errorResponse("Medicine not found", 404);
-    return successResponse(null, "Medicine deleted successfully");
+
+    await Promise.all([
+      Reminder.deleteMany({ userId, medicineId: id }),
+      Inventory.deleteMany({ userId, medicineId: id }),
+      Prescription.updateMany({ userId }, { $pull: { medicineIds: id } }),
+    ]);
+
+    return successResponse(null, "Medicine and its reminders deleted successfully");
   });
 }

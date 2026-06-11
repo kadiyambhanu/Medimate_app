@@ -23,7 +23,10 @@ export const GET = apiHandler(async (userId, request) => {
   }
 
   const reminders = await Reminder.find(filter)
-    .populate("medicineId", "medicineName dosage timings reminderTimes")
+    .populate(
+      "medicineId",
+      "medicineName genericName dosage frequency foodInstruction foodInstructionRaw timings reminderTimes status"
+    )
     .sort({ reminderTime: 1 });
 
   return successResponse(reminders);

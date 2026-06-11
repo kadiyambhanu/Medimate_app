@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { PageLoader } from "@/components/shared/loading-spinner";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
 import { useAuth } from "@/hooks/use-auth";
 import api from "@/lib/api";
 import { getInitials } from "@/lib/utils";
@@ -100,11 +102,12 @@ export function ProfileContent() {
   const notifSettings = profileForm.watch("notificationSettings");
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Profile Settings</h1>
-        <p className="text-muted-foreground">Manage your account and preferences</p>
-      </div>
+    <AdminPageShell className="max-w-3xl">
+      <PageHeader
+        title="Profile"
+        description="Manage your account and preferences"
+        icon={User}
+      />
 
       <Tabs defaultValue="profile">
         <TabsList>
@@ -114,9 +117,9 @@ export function ProfileContent() {
         </TabsList>
 
         <TabsContent value="profile" className="mt-6">
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>Personal Information</CardTitle>
+              <CardTitle className="text-base">Personal Information</CardTitle>
               <CardDescription>Update your profile details</CardDescription>
             </CardHeader>
             <CardContent>
@@ -171,9 +174,9 @@ export function ProfileContent() {
         </TabsContent>
 
         <TabsContent value="password" className="mt-6">
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>Change Password</CardTitle>
+              <CardTitle className="text-base">Change Password</CardTitle>
               <CardDescription>Update your account password</CardDescription>
             </CardHeader>
             <CardContent>
@@ -208,9 +211,9 @@ export function ProfileContent() {
         </TabsContent>
 
         <TabsContent value="notifications" className="mt-6">
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>Notification Settings</CardTitle>
+              <CardTitle className="text-base">Notification Settings</CardTitle>
               <CardDescription>Configure how you receive alerts</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -248,6 +251,6 @@ export function ProfileContent() {
           </Card>
         </TabsContent>
       </Tabs>
-    </div>
+    </AdminPageShell>
   );
 }

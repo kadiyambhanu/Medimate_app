@@ -49,7 +49,10 @@ export default function OnboardingPage() {
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
-      <div className="flex justify-end p-6">
+      <div className="flex items-center justify-between p-6">
+        <Button variant="ghost" onClick={() => router.push("/splash")}>
+          Back
+        </Button>
         <Button variant="ghost" onClick={finish}>Skip</Button>
       </div>
 

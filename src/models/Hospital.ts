@@ -11,6 +11,8 @@ const HospitalSchema = new Schema(
     city: { type: String },
     state: { type: String },
     country: { type: String },
+    latitude: { type: Number },
+    longitude: { type: Number },
     description: { type: String },
     status: { type: String, enum: ["active", "inactive"], default: "active" },
     role: { type: String, enum: ["HOSPITAL"], default: "HOSPITAL" },

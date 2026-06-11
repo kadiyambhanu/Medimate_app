@@ -36,7 +36,7 @@ export function Navbar({ onMenuClick }: NavbarProps) {
   const handleLogout = async () => {
     await logout();
     toast.success("Logged out successfully");
-    router.push("/login");
+    router.push("/splash");
   };
 
   return (

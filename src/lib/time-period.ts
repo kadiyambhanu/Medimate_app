@@ -62,3 +62,32 @@ export function matchesDoseSlot(reminder: IReminder, filter: DoseSlot | "all"): 
   if (filter === "all") return true;
   return getReminderDoseSlot(reminder) === filter;
 }
+
+/** Whether a medicine is scheduled for this dose period (from medicine.timings). */
+export function medicineMatchesDoseSlot(medicine: IMedicine, slot: DoseSlot): boolean {
+  const timings = medicine.timings;
+  if (!timings) return false;
+  if (slot === "morning") return Boolean(timings.morning);
+  if (slot === "afternoon") return Boolean(timings.afternoon);
+  if (slot === "night") return Boolean(timings.night || timings.evening);
+  return false;
+}
+
+/** Expected reminder time for a dose slot from the medicine schedule. */
+export function getScheduledTimeForSlot(medicine: IMedicine, slot: DoseSlot): string | null {
+  const slots = getActiveDoseSlots(medicine.timings);
+  const times = medicine.reminderTimes ?? [];
+
+  for (let i = 0; i < slots.length; i++) {
+    const normalized = normalizeDoseSlot(slots[i]);
+    if (normalized === slot) {
+      return times[i] ?? null;
+    }
+  }
+
+  return null;
+}
+
+export function countMedicinesForSlot(medicines: IMedicine[], slot: DoseSlot): number {
+  return medicines.filter((medicine) => medicineMatchesDoseSlot(medicine, slot)).length;
+}

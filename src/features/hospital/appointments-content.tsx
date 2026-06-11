@@ -9,11 +9,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
+import { DataCard } from "@/components/super-admin/data-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageLoader } from "@/components/shared/loading-spinner";
 import api from "@/lib/api";
+
+const statusVariant: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+  BOOKED: "default",
+  COMPLETED: "secondary",
+  CANCELLED: "destructive",
+};
 
 export function HospitalAppointmentsContent() {
   const [appointments, setAppointments] = useState<Record<string, unknown>[]>([]);
@@ -84,78 +93,123 @@ export function HospitalAppointmentsContent() {
 
   if (loading) return <PageLoader />;
 
+  const bookedCount = appointments.filter((a) => a.status === "BOOKED").length;
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Appointments</h1>
-          <p className="text-muted-foreground">Manage patient appointments</p>
-        </div>
-        <div className="relative max-w-sm">
+    <AdminPageShell>
+      <PageHeader
+        title="Appointments"
+        description="Manage patient appointments and bookings"
+        icon={Calendar}
+        badge={appointments.length}
+      >
+        <div className="relative w-full sm:w-64">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search patients..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Input
+            className="pl-9"
+            placeholder="Search patients..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
-      </div>
+      </PageHeader>
+
+      {appointments.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <Badge variant="outline" className="px-3 py-1">{bookedCount} booked</Badge>
+          <Badge variant="outline" className="px-3 py-1">{appointments.length - bookedCount} other</Badge>
+        </div>
+      )}
 
       {appointments.length === 0 ? (
-        <EmptyState icon={Calendar} title="No appointments" description="Appointments will appear here" />
+        <EmptyState
+          icon={Calendar}
+          title="No appointments"
+          description="Patient appointments will appear here once booked"
+        />
       ) : (
-        <div className="rounded-lg border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Patient</TableHead>
-                <TableHead>Doctor</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Time</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {appointments.map((apt) => {
-                const user = apt.userId as { name?: string } | null;
-                const doctor = apt.doctorId as { name?: string } | null;
-                return (
-                  <TableRow key={String(apt._id)}>
-                    <TableCell>{user?.name}</TableCell>
-                    <TableCell>{doctor?.name}</TableCell>
-                    <TableCell>{format(new Date(String(apt.appointmentDate)), "MMM d, yyyy")}</TableCell>
-                    <TableCell>{String(apt.slotTime)}</TableCell>
-                    <TableCell><Badge>{String(apt.status)}</Badge></TableCell>
-                    <TableCell className="text-right">
-                      {apt.status === "BOOKED" && (
-                        <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="outline" onClick={() => openReschedule(apt)}><RefreshCw className="h-4 w-4" /></Button>
-                          <Button size="sm" variant="outline" onClick={() => updateStatus(String(apt._id), "COMPLETED")}>Complete</Button>
-                          <Button size="sm" variant="destructive" onClick={() => updateStatus(String(apt._id), "CANCELLED")}><X className="h-4 w-4" /></Button>
-                        </div>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
+        <DataCard title="All Appointments" description="Upcoming and past patient visits" count={appointments.length}>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Patient</TableHead>
+                  <TableHead>Doctor</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {appointments.map((apt) => {
+                  const user = apt.userId as { name?: string } | null;
+                  const doctor = apt.doctorId as { name?: string } | null;
+                  const status = String(apt.status);
+                  return (
+                    <TableRow key={String(apt._id)}>
+                      <TableCell className="font-medium">{user?.name || "—"}</TableCell>
+                      <TableCell>{doctor?.name || "—"}</TableCell>
+                      <TableCell>{format(new Date(String(apt.appointmentDate)), "MMM d, yyyy")}</TableCell>
+                      <TableCell>{String(apt.slotTime)}</TableCell>
+                      <TableCell>
+                        <Badge variant={statusVariant[status] ?? "outline"}>{status}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {apt.status === "BOOKED" && (
+                          <div className="flex justify-end gap-1.5">
+                            <Button size="sm" variant="ghost" onClick={() => openReschedule(apt)} title="Reschedule">
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => updateStatus(String(apt._id), "COMPLETED")}>
+                              Complete
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => updateStatus(String(apt._id), "CANCELLED")}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </div>
+        </DataCard>
       )}
 
       <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>Reschedule Appointment</DialogTitle></DialogHeader>
+          <DialogHeader>
+            <DialogTitle>Reschedule Appointment</DialogTitle>
+            <DialogDescription>Pick a new date and available time slot</DialogDescription>
+          </DialogHeader>
           <form onSubmit={handleReschedule} className="space-y-4">
-            <div className="space-y-2"><Label>Date</Label><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></div>
+            <div className="space-y-2">
+              <Label>Date</Label>
+              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+            </div>
             <div className="space-y-2">
               <Label>Slot</Label>
               <Select value={slotTime} onValueChange={setSlotTime}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>{slots.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}</SelectContent>
+                <SelectContent>
+                  {slots.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
               </Select>
             </div>
-            <Button type="submit" className="w-full" disabled={submitting}>{submitting ? "Saving..." : "Reschedule"}</Button>
+            <Button type="submit" className="w-full" disabled={submitting}>
+              {submitting ? "Saving..." : "Reschedule"}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Calendar, X, RefreshCw } from "lucide-react";
+import { Calendar, X, RefreshCw, User, Building2, Stethoscope } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
+import { DataCard } from "@/components/super-admin/data-card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageLoader } from "@/components/shared/loading-spinner";
 import api from "@/lib/api";
@@ -25,6 +29,7 @@ type PopulatedAppointment = IAppointment & {
 export function AppointmentsAdminContent() {
   const [appointments, setAppointments] = useState<PopulatedAppointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState("all");
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [selected, setSelected] = useState<PopulatedAppointment | null>(null);
   const [date, setDate] = useState("");
@@ -108,66 +113,108 @@ export function AppointmentsAdminContent() {
 
   if (loading) return <PageLoader />;
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Appointment Management</h1>
-        <p className="text-muted-foreground">View, cancel, and reschedule appointments</p>
-      </div>
+  const filtered = statusFilter === "all"
+    ? appointments
+    : appointments.filter((a) => a.status === statusFilter);
 
-      {appointments.length === 0 ? (
-        <EmptyState icon={Calendar} title="No appointments" description="Appointments will appear here" />
+  const bookedCount = appointments.filter((a) => a.status === "BOOKED").length;
+  const completedCount = appointments.filter((a) => a.status === "COMPLETED").length;
+  const cancelledCount = appointments.filter((a) => a.status === "CANCELLED").length;
+
+  return (
+    <AdminPageShell>
+      <PageHeader
+        title="Appointments"
+        description="View, complete, cancel, and reschedule appointments"
+        icon={Calendar}
+        badge={appointments.length}
+      />
+
+      {appointments.length > 0 && (
+        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
+          <TabsList>
+            <TabsTrigger value="all">All ({appointments.length})</TabsTrigger>
+            <TabsTrigger value="BOOKED">Booked ({bookedCount})</TabsTrigger>
+            <TabsTrigger value="COMPLETED">Completed ({completedCount})</TabsTrigger>
+            <TabsTrigger value="CANCELLED">Cancelled ({cancelledCount})</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
+
+      {filtered.length === 0 ? (
+        <EmptyState icon={Calendar} title="No appointments" description="Appointments will appear here once patients book" />
       ) : (
-        <div className="rounded-lg border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Patient</TableHead>
-                <TableHead>Hospital</TableHead>
-                <TableHead>Doctor</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Time</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {appointments.map((apt) => (
-                <TableRow key={apt._id.toString()}>
-                  <TableCell>{apt.userId?.name}</TableCell>
-                  <TableCell>{apt.hospitalId?.hospitalName}</TableCell>
-                  <TableCell>{apt.doctorId?.name}</TableCell>
-                  <TableCell>{format(new Date(apt.appointmentDate), "MMM d, yyyy")}</TableCell>
-                  <TableCell>{apt.slotTime}</TableCell>
-                  <TableCell>
-                    <Badge variant={statusVariant(apt.status)}>{apt.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {apt.status === "BOOKED" && (
-                      <div className="flex justify-end gap-2">
-                        <Button size="sm" variant="outline" onClick={() => openReschedule(apt)}>
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                        <Button size="sm" variant="outline" onClick={() => handleComplete(apt._id.toString())}>
-                          Complete
-                        </Button>
-                        <Button size="sm" variant="destructive" onClick={() => handleCancel(apt._id.toString())}>
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </TableCell>
+        <DataCard title="Appointment List" count={filtered.length}>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Patient</TableHead>
+                  <TableHead>Hospital</TableHead>
+                  <TableHead>Doctor</TableHead>
+                  <TableHead>Date & Time</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {filtered.map((apt) => (
+                  <TableRow key={apt._id.toString()}>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-sm">
+                        <User className="h-3.5 w-3.5 text-muted-foreground" />
+                        {apt.userId?.name}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Building2 className="h-3.5 w-3.5" />
+                        {apt.hospitalId?.hospitalName}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <Stethoscope className="h-3.5 w-3.5" />
+                        {apt.doctorId?.name}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="text-sm font-medium">{format(new Date(apt.appointmentDate), "MMM d, yyyy")}</p>
+                        <p className="text-xs text-muted-foreground">{apt.slotTime}</p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={statusVariant(apt.status)}>{apt.status}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {apt.status === "BOOKED" && (
+                        <div className="flex justify-end gap-1.5">
+                          <Button size="sm" variant="ghost" onClick={() => openReschedule(apt)} title="Reschedule">
+                            <RefreshCw className="h-4 w-4" />
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => handleComplete(apt._id.toString())}>
+                            Complete
+                          </Button>
+                          <Button size="sm" variant="ghost" className="text-destructive hover:text-destructive" onClick={() => handleCancel(apt._id.toString())}>
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </DataCard>
       )}
 
       <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reschedule Appointment</DialogTitle>
+            <DialogDescription>Choose a new date and time slot for this appointment.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleReschedule} className="space-y-4">
             <div className="space-y-2">
@@ -191,6 +238,6 @@ export function AppointmentsAdminContent() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 }

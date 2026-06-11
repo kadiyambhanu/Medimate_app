@@ -14,6 +14,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageLoader } from "@/components/shared/loading-spinner";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import api from "@/lib/api";
@@ -214,17 +216,18 @@ export function AppointmentsContent() {
   if (loading) return <PageLoader />;
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">My Appointments</h1>
-          <p className="text-muted-foreground">View and manage your hospital appointments</p>
-        </div>
+    <AdminPageShell>
+      <PageHeader
+        title="My Appointments"
+        description="View and manage your hospital appointments"
+        icon={Calendar}
+        badge={appointments.length || undefined}
+      >
         <Button onClick={openCreateDialog}>
           <Plus className="mr-2 h-4 w-4" />
           Create Appointment
         </Button>
-      </div>
+      </PageHeader>
 
       {appointments.length === 0 ? (
         <EmptyState
@@ -237,7 +240,7 @@ export function AppointmentsContent() {
       ) : (
         <div className="grid gap-4">
           {appointments.map((apt) => (
-            <Card key={apt._id.toString()}>
+            <Card key={apt._id.toString()} className="shadow-sm">
               <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -442,6 +445,6 @@ export function AppointmentsContent() {
           </form>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminPageShell>
   );
 }

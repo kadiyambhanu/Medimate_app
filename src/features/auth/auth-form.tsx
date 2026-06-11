@@ -124,9 +124,9 @@ export function AuthForm({ mode, resetToken }: AuthFormProps) {
   };
 
   return (
-    <Card>
+    <Card className="border-border bg-card text-card-foreground shadow-sm">
       <CardHeader>
-        <CardTitle>{titles[mode].title}</CardTitle>
+        <CardTitle className="text-foreground">{titles[mode].title}</CardTitle>
         <CardDescription>{titles[mode].description}</CardDescription>
       </CardHeader>
       <CardContent>
@@ -259,9 +259,7 @@ export function AuthForm({ mode, resetToken }: AuthFormProps) {
         )}
         {(mode === "login" || mode === "register") && (
           <p className="text-xs text-muted-foreground">
-            <Link href="/hospital/login" className="hover:underline">Hospital login</Link>
-            {" · "}
-            <Link href="/superadmin" className="hover:underline">Super admin login</Link>
+            <Link href="/splash" className="hover:underline">Choose a different portal</Link>
           </p>
         )}
       </CardFooter>

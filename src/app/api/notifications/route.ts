@@ -4,7 +4,13 @@ import Notification from "@/models/Notification";
 
 export const GET = apiHandler(async (userId) => {
   const notifications = await Notification.find({ userId }).sort({ createdAt: -1 }).limit(50);
-  return successResponse(notifications);
+  return successResponse(
+    notifications.map((notification) => ({
+      ...notification.toObject(),
+      _id: notification._id.toString(),
+      userId: notification.userId.toString(),
+    }))
+  );
 });
 
 export const POST = apiHandler(async (userId, request) => {

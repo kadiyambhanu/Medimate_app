@@ -76,7 +76,7 @@ export function SuperAdminAuthForm({ mode }: SuperAdminAuthFormProps) {
   };
 
   return (
-    <Card>
+    <Card className="border-border bg-card text-card-foreground shadow-sm">
       <CardHeader>
         <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
           <Shield className="h-5 w-5 text-primary" />
@@ -167,9 +167,7 @@ export function SuperAdminAuthForm({ mode }: SuperAdminAuthFormProps) {
           </p>
         )}
         <p className="text-xs text-muted-foreground">
-          <Link href="/login" className="hover:underline">Patient login</Link>
-          {" · "}
-          <Link href="/hospital/login" className="hover:underline">Hospital login</Link>
+          <Link href="/splash" className="hover:underline">Choose a different portal</Link>
         </p>
       </CardFooter>
     </Card>

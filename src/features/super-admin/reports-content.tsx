@@ -1,10 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BarChart3 } from "lucide-react";
+import { BarChart3, Building2, Calendar, Users } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { AdminPageShell } from "@/components/super-admin/page-shell";
+import { PageHeader } from "@/components/super-admin/page-header";
+import { DataCard } from "@/components/super-admin/data-card";
+import { AdminStatCard } from "@/components/super-admin/admin-stat-card";
 import { PageLoader } from "@/components/shared/loading-spinner";
 import api from "@/lib/api";
 
@@ -33,106 +37,136 @@ export function ReportsAdminContent() {
 
   if (loading) return <PageLoader />;
 
+  const totalAppointments = appointmentReports?.byStatus.reduce((sum, s) => sum + s.count, 0) ?? 0;
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold flex items-center gap-2">
-          <BarChart3 className="h-6 w-6" />
-          Analytics
-        </h1>
-        <p className="text-muted-foreground">Hospital, appointment, and patient analytics</p>
+    <AdminPageShell>
+      <PageHeader
+        title="Analytics"
+        description="Hospital, appointment, and patient insights across the platform"
+        icon={BarChart3}
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <AdminStatCard
+          title="Hospitals"
+          value={hospitalReports.length}
+          icon={Building2}
+          variant="blue"
+        />
+        <AdminStatCard
+          title="Total Appointments"
+          value={totalAppointments}
+          icon={Calendar}
+          variant="orange"
+        />
+        <AdminStatCard
+          title="Patients"
+          value={userReports.length}
+          icon={Users}
+          variant="pink"
+        />
       </div>
 
       <Tabs defaultValue="hospitals">
-        <TabsList>
-          <TabsTrigger value="hospitals">Hospitals</TabsTrigger>
+        <TabsList className="h-auto flex-wrap">
+          <TabsTrigger value="hospitals">Hospitals ({hospitalReports.length})</TabsTrigger>
           <TabsTrigger value="appointments">Appointments</TabsTrigger>
-          <TabsTrigger value="users">Patients</TabsTrigger>
+          <TabsTrigger value="users">Patients ({userReports.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="hospitals" className="mt-4">
-          <div className="rounded-lg border bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Hospital</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Doctors</TableHead>
-                  <TableHead>Appointments</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {hospitalReports.map((h) => (
-                  <TableRow key={String(h._id)}>
-                    <TableCell className="font-medium">{String(h.hospitalName ?? h.name)}</TableCell>
-                    <TableCell><Badge>{String(h.status)}</Badge></TableCell>
-                    <TableCell>{Number(h.totalDoctors)}</TableCell>
-                    <TableCell>{Number(h.totalAppointments)}</TableCell>
+          <DataCard title="Hospital Performance" count={hospitalReports.length}>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Hospital</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Doctors</TableHead>
+                    <TableHead>Appointments</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {hospitalReports.map((h) => (
+                    <TableRow key={String(h._id)}>
+                      <TableCell className="font-medium">{String(h.hospitalName ?? h.name)}</TableCell>
+                      <TableCell><Badge>{String(h.status)}</Badge></TableCell>
+                      <TableCell>{Number(h.totalDoctors)}</TableCell>
+                      <TableCell>{Number(h.totalAppointments)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </DataCard>
         </TabsContent>
 
         <TabsContent value="appointments" className="mt-4 space-y-4">
-          <div className="flex gap-4">
+          <div className="grid gap-4 sm:grid-cols-3">
             {appointmentReports?.byStatus.map((s) => (
-              <div key={s.status} className="rounded-lg border bg-card p-4">
-                <p className="text-sm text-muted-foreground">{s.status}</p>
-                <p className="text-2xl font-bold">{s.count}</p>
-              </div>
+              <AdminStatCard
+                key={s.status}
+                title={s.status}
+                value={s.count}
+                icon={Calendar}
+                variant={s.status === "BOOKED" ? "blue" : s.status === "COMPLETED" ? "green" : "orange"}
+              />
             ))}
           </div>
-          <div className="rounded-lg border bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Patient</TableHead>
-                  <TableHead>Hospital</TableHead>
-                  <TableHead>Doctor</TableHead>
-                  <TableHead>Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {appointmentReports?.recent.map((a) => (
-                  <TableRow key={String(a._id)}>
-                    <TableCell>{(a.userId as { name?: string })?.name}</TableCell>
-                    <TableCell>{(a.hospitalId as { name?: string })?.name}</TableCell>
-                    <TableCell>{(a.doctorId as { name?: string })?.name}</TableCell>
-                    <TableCell><Badge>{String(a.status)}</Badge></TableCell>
+          <DataCard title="Recent Appointments" count={appointmentReports?.recent.length}>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Patient</TableHead>
+                    <TableHead>Hospital</TableHead>
+                    <TableHead>Doctor</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {appointmentReports?.recent.map((a) => (
+                    <TableRow key={String(a._id)}>
+                      <TableCell>{(a.userId as { name?: string })?.name}</TableCell>
+                      <TableCell>{(a.hospitalId as { name?: string })?.name}</TableCell>
+                      <TableCell>{(a.doctorId as { name?: string })?.name}</TableCell>
+                      <TableCell><Badge>{String(a.status)}</Badge></TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </DataCard>
         </TabsContent>
 
         <TabsContent value="users" className="mt-4">
-          <div className="rounded-lg border bg-card">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Appointments</TableHead>
-                  <TableHead>Joined</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {userReports.map((u) => (
-                  <TableRow key={String(u._id)}>
-                    <TableCell className="font-medium">{String(u.name)}</TableCell>
-                    <TableCell>{String(u.email)}</TableCell>
-                    <TableCell>{Number(u.totalAppointments)}</TableCell>
-                    <TableCell>{new Date(String(u.createdAt)).toLocaleDateString()}</TableCell>
+          <DataCard title="Patient Directory" count={userReports.length}>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Appointments</TableHead>
+                    <TableHead>Joined</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+                </TableHeader>
+                <TableBody>
+                  {userReports.map((u) => (
+                    <TableRow key={String(u._id)}>
+                      <TableCell className="font-medium">{String(u.name)}</TableCell>
+                      <TableCell>{String(u.email)}</TableCell>
+                      <TableCell>{Number(u.totalAppointments)}</TableCell>
+                      <TableCell>{new Date(String(u.createdAt)).toLocaleDateString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </DataCard>
         </TabsContent>
       </Tabs>
-    </div>
+    </AdminPageShell>
   );
 }

@@ -21,7 +21,7 @@ export default function HospitalAuthLayout({ children }: { children: React.React
           &copy; {new Date().getFullYear()} {APP_NAME}. Hospital access only.
         </p>
       </div>
-      <div className="flex w-full flex-col items-center justify-center p-6 lg:w-1/2">
+      <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-6 text-foreground lg:w-1/2">
         <div className="mb-8 flex items-center gap-2 lg:hidden">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <Building2 className="h-5 w-5 text-primary-foreground" />

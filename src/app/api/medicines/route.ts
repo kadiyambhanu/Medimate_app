@@ -6,6 +6,7 @@ import Medicine from "@/models/Medicine";
 
 export const GET = apiHandler(async (userId, request) => {
   const { searchParams } = new URL(request.url);
+  const fetchAll = searchParams.get("all") === "true";
   const page = parseInt(searchParams.get("page") || "1");
   const search = searchParams.get("search") || "";
   const status = searchParams.get("status") || "";
@@ -20,16 +21,17 @@ export const GET = apiHandler(async (userId, request) => {
     ];
   }
 
+  const query = Medicine.find(filter).sort({ createdAt: -1 });
   const [items, total] = await Promise.all([
-    Medicine.find(filter).sort({ createdAt: -1 }).skip(skip).limit(ITEMS_PER_PAGE),
+    fetchAll ? query : query.skip(skip).limit(ITEMS_PER_PAGE),
     Medicine.countDocuments(filter),
   ]);
 
   return successResponse({
     items,
     total,
-    page,
-    totalPages: Math.ceil(total / ITEMS_PER_PAGE),
+    page: fetchAll ? 1 : page,
+    totalPages: fetchAll ? 1 : Math.ceil(total / ITEMS_PER_PAGE),
   });
 });
 
