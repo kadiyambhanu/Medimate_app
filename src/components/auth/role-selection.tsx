@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -11,11 +10,7 @@ import {
   Pill,
   Bell,
   Stethoscope,
-  ArrowLeft,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { AuthForm } from "@/features/auth/auth-form";
-import { PageLoader } from "@/components/shared/loading-spinner";
 import { APP_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +22,7 @@ const roles = [
     icon: Heart,
     accent: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
     border: "hover:border-blue-500/40 hover:bg-blue-500/5",
-    href: null,
+    href: "/login",
   },
   {
     id: "hospital",
@@ -49,78 +44,33 @@ const roles = [
   },
 ] as const;
 
-function RoleCard({
-  role,
-  onSelect,
-  href,
-  selected,
-}: {
-  role: (typeof roles)[number];
-  onSelect?: () => void;
-  href?: string;
-  selected?: boolean;
-}) {
+function RoleCard({ role }: { role: (typeof roles)[number] }) {
   const Icon = role.icon;
 
-  const inner = (
-    <div
-      className={cn(
-        "group flex w-full cursor-pointer items-center gap-4 rounded-xl border bg-card p-4 text-card-foreground shadow-sm transition-all",
-        selected ? "border-primary ring-1 ring-primary/30" : "border-border",
-        role.border
-      )}
-    >
-      <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl", role.accent)}>
-        <Icon className="h-6 w-6" />
-      </div>
-
-      <div className="min-w-0 flex-1">
-        <h3 className="font-semibold text-foreground">{role.title}</h3>
-        <p className="mt-0.5 text-sm text-muted-foreground">{role.description}</p>
-      </div>
-
-      <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
-    </div>
-  );
-
-  if (onSelect) {
-    return (
-      <button type="button" onClick={onSelect} className="w-full text-left">
-        {inner}
-      </button>
-    );
-  }
-
   return (
-    <Link href={href!} className="block w-full">
-      {inner}
+    <Link href={role.href} className="block w-full">
+      <div
+        className={cn(
+          "group flex w-full cursor-pointer items-center gap-4 rounded-xl border border-border bg-card p-4 text-card-foreground shadow-sm transition-all",
+          role.border
+        )}
+      >
+        <div className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-xl", role.accent)}>
+          <Icon className="h-6 w-6" />
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <h3 className="font-semibold text-foreground">{role.title}</h3>
+          <p className="mt-0.5 text-sm text-muted-foreground">{role.description}</p>
+        </div>
+
+        <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-foreground" />
+      </div>
     </Link>
   );
 }
 
-function PatientLoginPanel({ onBack }: { onBack: () => void }) {
-  return (
-    <div className="mx-auto w-full max-w-md">
-      <Button variant="ghost" size="sm" className="mb-4 -ml-2" onClick={onBack}>
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to portals
-      </Button>
-
-      <div className="mb-6 space-y-2">
-        <h2 className="text-2xl font-bold tracking-tight text-foreground">Patient Login</h2>
-        <p className="text-sm text-muted-foreground">Sign in to manage your medicines and health</p>
-      </div>
-
-      <Suspense fallback={<PageLoader />}>
-        <AuthForm mode="login" />
-      </Suspense>
-    </div>
-  );
-}
-
 export function RoleSelection() {
-  const [showPatientLogin, setShowPatientLogin] = useState(false);
-
   return (
     <div className="flex min-h-screen bg-background text-foreground">
       <div className="relative hidden w-1/2 flex-col justify-between overflow-hidden bg-primary p-12 text-primary-foreground lg:flex">
@@ -169,37 +119,24 @@ export function RoleSelection() {
         </div>
 
         <div className="flex flex-1 flex-col justify-center px-6 pb-10 pt-4 lg:px-12">
-          {showPatientLogin ? (
-            <PatientLoginPanel onBack={() => setShowPatientLogin(false)} />
-          ) : (
-            <div className="mx-auto w-full max-w-lg">
-              <div className="mb-8 space-y-2">
-                <h2 className="text-2xl font-bold tracking-tight text-foreground">Choose your portal</h2>
-                <p className="text-sm text-muted-foreground">
-                  Select how you want to sign in to {APP_NAME}
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                {roles.map((role) =>
-                  role.id === "patient" ? (
-                    <RoleCard
-                      key={role.id}
-                      role={role}
-                      selected={false}
-                      onSelect={() => setShowPatientLogin(true)}
-                    />
-                  ) : (
-                    <RoleCard key={role.id} role={role} href={role.href!} />
-                  )
-                )}
-              </div>
-
-              <p className="mt-8 text-center text-xs text-muted-foreground lg:hidden">
-                &copy; {new Date().getFullYear()} {APP_NAME}
+          <div className="mx-auto w-full max-w-lg">
+            <div className="mb-8 space-y-2">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">Choose your portal</h2>
+              <p className="text-sm text-muted-foreground">
+                Select how you want to sign in to {APP_NAME}
               </p>
             </div>
-          )}
+
+            <div className="space-y-3">
+              {roles.map((role) => (
+                <RoleCard key={role.id} role={role} />
+              ))}
+            </div>
+
+            <p className="mt-8 text-center text-xs text-muted-foreground lg:hidden">
+              &copy; {new Date().getFullYear()} {APP_NAME}
+            </p>
+          </div>
         </div>
       </div>
     </div>

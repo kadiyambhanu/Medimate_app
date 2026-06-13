@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format, addDays } from "date-fns";
-import { Stethoscope, ArrowLeft, Calendar, Clock } from "lucide-react";
+import { Stethoscope, ArrowLeft, Calendar, Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,9 +13,21 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { PageLoader } from "@/components/shared/loading-spinner";
+import {
+  emptyPatientDetails,
+  isPatientDetailsValid,
+  PatientDetailsForm,
+} from "@/components/shared/patient-details-form";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { APPOINTMENT_FEE } from "@/lib/constants";
 import api from "@/lib/api";
-import type { IDoctor, IDoctorSchedule, IHospital } from "@/types";
+import { PaymentMethodSelect } from "@/components/shared/payment-method-select";
+import { PaymentReceiptDialog } from "@/components/shared/payment-receipt-dialog";
+import { UpiPaymentPanel } from "@/components/shared/upi-payment-panel";
+import type { IDoctor, IDoctorSchedule, IHospital, PaymentMethod, PaymentReceiptData } from "@/types";
+import { buildPaymentReceiptFromAppointment } from "@/utils/payment-receipt";
+import type { PatientDetailsFormInput } from "@/components/shared/patient-details-form";
 
 interface DoctorDetail extends IDoctor {
   hospitalId: IHospital;
@@ -30,14 +42,31 @@ export function DoctorDetailContent({
   doctorId: string;
 }) {
   const router = useRouter();
+  const { user } = useAuth();
   const [doctor, setDoctor] = useState<DoctorDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [date, setDate] = useState(format(addDays(new Date(), 1), "yyyy-MM-dd"));
   const [slots, setSlots] = useState<string[]>([]);
   const [selectedSlot, setSelectedSlot] = useState("");
   const [notes, setNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod | "">("");
+  const [patientDetails, setPatientDetails] = useState<PatientDetailsFormInput>(() => ({
+    ...emptyPatientDetails(),
+    name: user?.name ?? "",
+  }));
   const [booking, setBooking] = useState(false);
   const [slotsLoading, setSlotsLoading] = useState(false);
+  const [upiPayStarted, setUpiPayStarted] = useState(false);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receipt, setReceipt] = useState<PaymentReceiptData | null>(null);
+  const [redirectAfterReceipt, setRedirectAfterReceipt] = useState(false);
+
+  useEffect(() => {
+    if (user?.name) {
+      setPatientDetails((prev) => ({ ...prev, name: user.name ?? prev.name }));
+    }
+  }, [user?.name]);
 
   useEffect(() => {
     api
@@ -60,28 +89,67 @@ export function DoctorDetailContent({
       .finally(() => setSlotsLoading(false));
   }, [doctorId, date]);
 
-  const handleBook = async () => {
+  useEffect(() => {
+    setUpiPayStarted(false);
+    setPaymentConfirmed(false);
+  }, [paymentMethod]);
+
+  const bookAppointment = useCallback(async (upiTransactionId?: string) => {
+    if (!doctor) return;
+    if (!isPatientDetailsValid(patientDetails)) {
+      toast.error("Fill in all patient details");
+      return;
+    }
     if (!selectedSlot) {
       toast.error("Select a time slot");
       return;
     }
+    if (!paymentMethod) {
+      toast.error("Select a payment method");
+      return;
+    }
+    if (paymentMethod === "UPI" && !upiTransactionId) return;
+
     setBooking(true);
     try {
-      await api.post("/appointments", {
+      const res = await api.post("/appointments", {
         hospitalId,
         doctorId,
         appointmentDate: date,
         slotTime: selectedSlot,
         notes,
+        paymentMethod,
+        patientDetails,
+        ...(paymentMethod === "UPI" && {
+          paymentCompleted: true,
+          upiTransactionId,
+        }),
       });
-      toast.success("Appointment booked successfully!");
-      router.push("/appointments");
+
+      const appointment = res.data.data as Record<string, unknown>;
+      const receiptData = buildPaymentReceiptFromAppointment(appointment);
+
+      if (receiptData) {
+        setReceipt(receiptData);
+        setReceiptOpen(true);
+        setRedirectAfterReceipt(true);
+        toast.success("Payment confirmed. Appointment confirmed!");
+      } else {
+        toast.success("Appointment confirmed!");
+        router.push("/appointments");
+      }
     } catch (err) {
+      setPaymentConfirmed(false);
       toast.error(err instanceof Error ? err.message : "Booking failed");
     } finally {
       setBooking(false);
     }
-  };
+  }, [doctor, patientDetails, selectedSlot, paymentMethod, hospitalId, doctorId, date, notes, router]);
+
+  const handleUpiPaymentComplete = useCallback((transactionId: string) => {
+    setPaymentConfirmed(true);
+    bookAppointment(transactionId);
+  }, [bookAppointment]);
 
   if (loading) return <PageLoader />;
   if (!doctor) return <p>Doctor not found</p>;
@@ -110,7 +178,7 @@ export function DoctorDetailContent({
             {doctor.qualification && <p className="text-muted-foreground">{doctor.qualification}</p>}
             <div className="flex flex-wrap gap-3 text-sm">
               <Badge variant="secondary">{doctor.experience} years experience</Badge>
-              <Badge>₹{doctor.consultationFee} consultation</Badge>
+              <Badge>₹{APPOINTMENT_FEE} appointment fee</Badge>
             </div>
             {doctor.description && <p className="text-sm text-muted-foreground">{doctor.description}</p>}
           </div>
@@ -147,7 +215,15 @@ export function DoctorDetailContent({
             Book Appointment
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
+            <div>
+              <h3 className="text-sm font-medium">Patient Details</h3>
+              <p className="text-xs text-muted-foreground">Required before booking</p>
+            </div>
+            <PatientDetailsForm value={patientDetails} onChange={setPatientDetails} />
+          </div>
+
           <div className="space-y-2">
             <Label>Select Date</Label>
             <Input
@@ -190,11 +266,75 @@ export function DoctorDetailContent({
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Any symptoms or notes..." />
           </div>
 
-          <Button onClick={handleBook} disabled={booking || !selectedSlot} className="w-full">
-            {booking ? "Booking..." : "Confirm Appointment"}
-          </Button>
+          {selectedSlot && (
+            <div className="rounded-lg border bg-muted/30 p-4">
+              <h4 className="mb-3 text-sm font-medium">Booking Summary</h4>
+              <div className="space-y-1 text-sm text-muted-foreground">
+                <p>Date: {format(new Date(date), "EEEE, MMM d, yyyy")}</p>
+                <p>Time: {selectedSlot}</p>
+                <p className="font-medium text-foreground">Appointment Fee: ₹{APPOINTMENT_FEE}</p>
+              </div>
+            </div>
+          )}
+
+          <PaymentMethodSelect
+            value={paymentMethod}
+            onChange={setPaymentMethod}
+            consultationFee={APPOINTMENT_FEE}
+            disabled={!selectedSlot || paymentConfirmed || booking}
+          />
+
+          {paymentMethod === "UPI" && selectedSlot && !upiPayStarted && !paymentConfirmed && (
+            <Button type="button" className="w-full" onClick={() => setUpiPayStarted(true)}>
+              Pay ₹{APPOINTMENT_FEE} with UPI
+            </Button>
+          )}
+
+          {paymentMethod === "UPI" && selectedSlot && upiPayStarted && !paymentConfirmed && (
+            <UpiPaymentPanel
+              amount={APPOINTMENT_FEE}
+              onPaymentComplete={handleUpiPaymentComplete}
+            />
+          )}
+
+          {paymentMethod === "UPI" && paymentConfirmed && booking && (
+            <div className="flex items-center justify-center gap-2 rounded-xl border bg-primary/5 px-4 py-6 text-sm font-medium text-primary">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Payment confirmed — confirming your appointment...
+            </div>
+          )}
+
+          {paymentMethod === "PAY_AT_HOSPITAL" && (
+            <Button
+              onClick={() => bookAppointment()}
+              disabled={booking || !selectedSlot || !isPatientDetailsValid(patientDetails)}
+              className="w-full"
+            >
+              {booking ? "Booking..." : "Confirm Appointment"}
+            </Button>
+          )}
+
+          {paymentMethod === "UPI" && selectedSlot && !paymentConfirmed && (
+            <p className="text-center text-sm text-muted-foreground">
+              {upiPayStarted
+                ? "Complete UPI payment to confirm your appointment"
+                : "Start UPI payment to confirm your appointment"}
+            </p>
+          )}
         </CardContent>
       </Card>
+
+      <PaymentReceiptDialog
+        open={receiptOpen}
+        onOpenChange={(open) => {
+          setReceiptOpen(open);
+          if (!open && redirectAfterReceipt) {
+            setRedirectAfterReceipt(false);
+            router.push("/appointments");
+          }
+        }}
+        receipt={receipt}
+      />
     </div>
   );
 }

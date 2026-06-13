@@ -1,25 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { format, addDays } from "date-fns";
-import { Calendar, X, RefreshCw, Plus } from "lucide-react";
+import { format } from "date-fns";
+import { Calendar, X, RefreshCw, Plus, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageLoader } from "@/components/shared/loading-spinner";
 import { AdminPageShell } from "@/components/super-admin/page-shell";
 import { PageHeader } from "@/components/super-admin/page-header";
-import { cn } from "@/lib/utils";
-import { useAuth } from "@/hooks/use-auth";
+import { CreateAppointmentDialog } from "@/features/appointments/create-appointment-dialog";
+import { PaymentReceiptDialog } from "@/components/shared/payment-receipt-dialog";
 import api from "@/lib/api";
-import type { IAppointment, IHospital, IDoctor } from "@/types";
+import type { IAppointment, IHospital, IDoctor, PaymentReceiptData } from "@/types";
+import { buildPaymentReceiptFromAppointment } from "@/utils/payment-receipt";
 
 type PopulatedAppointment = IAppointment & {
   hospitalId: IHospital;
@@ -27,158 +27,53 @@ type PopulatedAppointment = IAppointment & {
 };
 
 export function AppointmentsContent() {
-  const { user } = useAuth();
   const [appointments, setAppointments] = useState<PopulatedAppointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [selected, setSelected] = useState<PopulatedAppointment | null>(null);
-  const [date, setDate] = useState("");
+  const [filterDate, setFilterDate] = useState("");
+  const [rescheduleDate, setRescheduleDate] = useState("");
   const [slotTime, setSlotTime] = useState("");
   const [slots, setSlots] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
-
-  const [hospitals, setHospitals] = useState<IHospital[]>([]);
-  const [doctors, setDoctors] = useState<IDoctor[]>([]);
-  const [hospitalsLoading, setHospitalsLoading] = useState(false);
-  const [doctorsLoading, setDoctorsLoading] = useState(false);
-  const [createHospitalId, setCreateHospitalId] = useState("");
-  const [createDoctorId, setCreateDoctorId] = useState("");
-  const [createDate, setCreateDate] = useState(format(addDays(new Date(), 1), "yyyy-MM-dd"));
-  const [createSlot, setCreateSlot] = useState("");
-  const [createSlots, setCreateSlots] = useState<string[]>([]);
-  const [createSlotsLoading, setCreateSlotsLoading] = useState(false);
-  const [createNotes, setCreateNotes] = useState("");
-  const [patientName, setPatientName] = useState("");
-  const [patientEmail, setPatientEmail] = useState("");
-  const [patientPhone, setPatientPhone] = useState("");
-  const [creating, setCreating] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
+  const [receipt, setReceipt] = useState<PaymentReceiptData | null>(null);
 
   const fetchAppointments = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await api.get("/appointments");
+      const params = new URLSearchParams();
+      if (filterDate) params.set("date", filterDate);
+      const res = await api.get(`/appointments?${params}`);
       setAppointments(res.data.data);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to load appointments");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filterDate]);
 
   useEffect(() => {
     fetchAppointments();
   }, [fetchAppointments]);
 
-  const resetCreateForm = useCallback(() => {
-    setCreateHospitalId("");
-    setCreateDoctorId("");
-    setDoctors([]);
-    setCreateDate(format(addDays(new Date(), 1), "yyyy-MM-dd"));
-    setCreateSlot("");
-    setCreateSlots([]);
-    setCreateNotes("");
-    setPatientName(user?.name ?? "");
-    setPatientEmail(user?.email ?? "");
-    setPatientPhone(user?.phone ?? "");
-  }, [user]);
-
-  const openCreateDialog = () => {
-    resetCreateForm();
-    setCreateOpen(true);
-  };
-
-  useEffect(() => {
-    if (!createOpen) return;
-    setHospitalsLoading(true);
-    api
-      .get("/hospitals")
-      .then((res) => setHospitals(res.data.data))
-      .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load hospitals"))
-      .finally(() => setHospitalsLoading(false));
-  }, [createOpen]);
-
-  useEffect(() => {
-    if (!createHospitalId) {
-      setDoctors([]);
-      setCreateDoctorId("");
-      return;
-    }
-    setDoctorsLoading(true);
-    setCreateDoctorId("");
-    setCreateSlot("");
-    setCreateSlots([]);
-    api
-      .get(`/doctors?hospitalId=${createHospitalId}`)
-      .then((res) => setDoctors(res.data.data))
-      .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load doctors"))
-      .finally(() => setDoctorsLoading(false));
-  }, [createHospitalId]);
-
-  useEffect(() => {
-    if (!createDoctorId || !createDate) return;
-    setCreateSlotsLoading(true);
-    api
-      .get(`/doctors/${createDoctorId}/slots?date=${createDate}`)
-      .then((res) => {
-        setCreateSlots(res.data.data);
-        setCreateSlot("");
-      })
-      .catch(() => setCreateSlots([]))
-      .finally(() => setCreateSlotsLoading(false));
-  }, [createDoctorId, createDate]);
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!patientName.trim()) {
-      toast.error("Patient name is required");
-      return;
-    }
-    if (!createHospitalId) {
-      toast.error("Select a hospital");
-      return;
-    }
-    if (!createDoctorId) {
-      toast.error("Select a doctor");
-      return;
-    }
-    if (!createSlot) {
-      toast.error("Select a time slot");
-      return;
-    }
-    setCreating(true);
-    try {
-      await api.post("/appointments", {
-        hospitalId: createHospitalId,
-        doctorId: createDoctorId,
-        appointmentDate: createDate,
-        slotTime: createSlot,
-        notes: createNotes || undefined,
-      });
-      toast.success("Appointment booked successfully");
-      setCreateOpen(false);
-      fetchAppointments();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Booking failed");
-    } finally {
-      setCreating(false);
-    }
-  };
+  const openCreateDialog = () => setCreateOpen(true);
 
   const openReschedule = (appointment: PopulatedAppointment) => {
     setSelected(appointment);
-    setDate(format(new Date(appointment.appointmentDate), "yyyy-MM-dd"));
+    setRescheduleDate(format(new Date(appointment.appointmentDate), "yyyy-MM-dd"));
     setSlotTime(appointment.slotTime);
     setRescheduleOpen(true);
   };
 
   useEffect(() => {
-    if (!selected || !date) return;
+    if (!selected || !rescheduleDate) return;
     api
-      .get(`/doctors/${selected.doctorId._id}/slots?date=${date}`)
+      .get(`/doctors/${selected.doctorId._id}/slots?date=${rescheduleDate}`)
       .then((res) => setSlots(res.data.data))
       .catch(() => setSlots([]));
-  }, [selected, date]);
+  }, [selected, rescheduleDate]);
 
   const handleCancel = async (id: string) => {
     if (!confirm("Cancel this appointment?")) return;
@@ -196,7 +91,7 @@ export function AppointmentsContent() {
     if (!selected) return;
     setSubmitting(true);
     try {
-      await api.put(`/appointments/${selected._id}`, { appointmentDate: date, slotTime });
+      await api.put(`/appointments/${selected._id}`, { appointmentDate: rescheduleDate, slotTime });
       toast.success("Appointment rescheduled");
       setRescheduleOpen(false);
       fetchAppointments();
@@ -207,13 +102,27 @@ export function AppointmentsContent() {
     }
   };
 
+  const paymentMethodLabel = (method?: string) => {
+    if (method === "UPI") return "UPI";
+    if (method === "PAY_AT_HOSPITAL") return "Pay at Hospital";
+    return method;
+  };
+
+  const openReceipt = (apt: PopulatedAppointment) => {
+    const data = buildPaymentReceiptFromAppointment(apt as unknown as Record<string, unknown>);
+    if (data) {
+      setReceipt(data);
+      setReceiptOpen(true);
+    }
+  };
+
   const statusVariant = (status: string) => {
     if (status === "BOOKED") return "default";
     if (status === "COMPLETED") return "secondary";
     return "destructive";
   };
 
-  if (loading) return <PageLoader />;
+  if (loading && appointments.length === 0 && !filterDate) return <PageLoader />;
 
   return (
     <AdminPageShell>
@@ -223,19 +132,37 @@ export function AppointmentsContent() {
         icon={Calendar}
         badge={appointments.length || undefined}
       >
+        <Input
+          type="date"
+          value={filterDate}
+          onChange={(e) => setFilterDate(e.target.value)}
+          className="h-9 w-40"
+          aria-label="Filter appointments by date"
+        />
+        {filterDate && (
+          <Button variant="ghost" size="sm" onClick={() => setFilterDate("")}>
+            Clear
+          </Button>
+        )}
         <Button onClick={openCreateDialog}>
           <Plus className="mr-2 h-4 w-4" />
           Create Appointment
         </Button>
       </PageHeader>
 
-      {appointments.length === 0 ? (
+      {loading ? (
+        <PageLoader />
+      ) : appointments.length === 0 ? (
         <EmptyState
           icon={Calendar}
-          title="No appointments"
-          description="Book an appointment with a hospital doctor"
-          actionLabel="Create Appointment"
-          onAction={openCreateDialog}
+          title={filterDate ? "No appointments on this date" : "No appointments"}
+          description={
+            filterDate
+              ? `No appointments found for ${format(new Date(filterDate), "MMMM d, yyyy")}`
+              : "Book an appointment with a hospital doctor"
+          }
+          actionLabel={filterDate ? undefined : "Create Appointment"}
+          onAction={filterDate ? undefined : openCreateDialog}
         />
       ) : (
         <div className="grid gap-4">
@@ -251,8 +178,35 @@ export function AppointmentsContent() {
                   <p className="text-sm">
                     {format(new Date(apt.appointmentDate), "EEEE, MMM d, yyyy")} at {apt.slotTime}
                   </p>
+                  {apt.patientDetails && (
+                    <p className="text-sm text-muted-foreground">
+                      Patient: {apt.patientDetails.name}
+                      {apt.patientDetails.gender && ` · ${apt.patientDetails.gender}`}
+                      {apt.patientDetails.diseaseName && ` · ${apt.patientDetails.diseaseName}`}
+                    </p>
+                  )}
                   {apt.notes && <p className="text-sm text-muted-foreground">Note: {apt.notes}</p>}
+                  {apt.consultationFee != null && apt.consultationFee > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span>
+                        Appointment fee: ₹{apt.consultationFee}
+                        {apt.paymentMethod && (
+                          <span className="text-muted-foreground"> · {paymentMethodLabel(apt.paymentMethod)}</span>
+                        )}
+                      </span>
+                      {apt.paymentStatus === "COMPLETED" && (
+                        <Badge variant="secondary">Paid</Badge>
+                      )}
+                    </div>
+                  )}
                 </div>
+                <div className="flex flex-col gap-2">
+                {apt.paymentStatus === "COMPLETED" && apt.paymentReceiptId && (
+                  <Button size="sm" variant="outline" onClick={() => openReceipt(apt)}>
+                    <Download className="mr-1 h-4 w-4" />
+                    Receipt
+                  </Button>
+                )}
                 {apt.status === "BOOKED" && (
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => openReschedule(apt)}>
@@ -265,158 +219,18 @@ export function AppointmentsContent() {
                     </Button>
                   </div>
                 )}
+                </div>
               </CardContent>
             </Card>
           ))}
         </div>
       )}
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Create Appointment</DialogTitle>
-            <DialogDescription>
-              Enter patient details, select a hospital and doctor, then pick an available slot.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreate} className="space-y-5">
-            <div className="space-y-3 rounded-lg border p-4">
-              <h3 className="text-sm font-medium">Patient Details</h3>
-              <div className="space-y-2">
-                <Label htmlFor="patientName">Full Name</Label>
-                <Input
-                  id="patientName"
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  placeholder="Patient full name"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="patientEmail">Email</Label>
-                <Input
-                  id="patientEmail"
-                  type="email"
-                  value={patientEmail}
-                  onChange={(e) => setPatientEmail(e.target.value)}
-                  placeholder="Email address"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="patientPhone">Phone</Label>
-                <Input
-                  id="patientPhone"
-                  type="tel"
-                  value={patientPhone}
-                  onChange={(e) => setPatientPhone(e.target.value)}
-                  placeholder="Phone number"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Hospital</Label>
-              <Select value={createHospitalId} onValueChange={setCreateHospitalId} disabled={hospitalsLoading}>
-                <SelectTrigger>
-                  <SelectValue placeholder={hospitalsLoading ? "Loading hospitals..." : "Select hospital"} />
-                </SelectTrigger>
-                <SelectContent>
-                  {hospitals.map((hospital) => (
-                    <SelectItem key={hospital._id.toString()} value={hospital._id.toString()}>
-                      {hospital.hospitalName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Doctor</Label>
-              <Select
-                value={createDoctorId}
-                onValueChange={setCreateDoctorId}
-                disabled={!createHospitalId || doctorsLoading}
-              >
-                <SelectTrigger>
-                  <SelectValue
-                    placeholder={
-                      !createHospitalId
-                        ? "Select a hospital first"
-                        : doctorsLoading
-                          ? "Loading doctors..."
-                          : doctors.length === 0
-                            ? "No doctors available"
-                            : "Select doctor"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  {doctors.map((doctor) => (
-                    <SelectItem key={doctor._id.toString()} value={doctor._id.toString()}>
-                      {doctor.name} — {doctor.specialization}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Appointment Date</Label>
-              <Input
-                type="date"
-                value={createDate}
-                min={format(new Date(), "yyyy-MM-dd")}
-                onChange={(e) => setCreateDate(e.target.value)}
-                disabled={!createDoctorId}
-                required
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Time Slot</Label>
-              {!createDoctorId ? (
-                <p className="text-sm text-muted-foreground">Select a doctor to view available slots</p>
-              ) : createSlotsLoading ? (
-                <p className="text-sm text-muted-foreground">Loading slots...</p>
-              ) : createSlots.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No slots available for this date</p>
-              ) : (
-                <div className="flex flex-wrap gap-2">
-                  {createSlots.map((slot) => (
-                    <button
-                      key={slot}
-                      type="button"
-                      onClick={() => setCreateSlot(slot)}
-                      className={cn(
-                        "rounded-lg border px-3 py-1.5 text-sm transition-colors",
-                        createSlot === slot
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "hover:bg-accent"
-                      )}
-                    >
-                      {slot}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Notes (optional)</Label>
-              <Textarea
-                value={createNotes}
-                onChange={(e) => setCreateNotes(e.target.value)}
-                placeholder="Any symptoms or notes for the doctor..."
-                rows={3}
-              />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={creating || !createSlot}>
-              {creating ? "Booking..." : "Book Appointment"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <CreateAppointmentDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        onSuccess={fetchAppointments}
+      />
 
       <Dialog open={rescheduleOpen} onOpenChange={setRescheduleOpen}>
         <DialogContent>
@@ -426,7 +240,7 @@ export function AppointmentsContent() {
           <form onSubmit={handleReschedule} className="space-y-4">
             <div className="space-y-2">
               <Label>Date</Label>
-              <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
+              <Input type="date" value={rescheduleDate} onChange={(e) => setRescheduleDate(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label>Time Slot</Label>
@@ -445,6 +259,12 @@ export function AppointmentsContent() {
           </form>
         </DialogContent>
       </Dialog>
+
+      <PaymentReceiptDialog
+        open={receiptOpen}
+        onOpenChange={setReceiptOpen}
+        receipt={receipt}
+      />
     </AdminPageShell>
   );
 }

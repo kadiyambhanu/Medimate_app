@@ -1,7 +1,7 @@
 import { hospitalParamsHandler, successResponse, errorResponse } from "@/lib/api-helpers";
 import { appointmentRescheduleSchema } from "@/validations/appointment";
 import Appointment from "@/models/Appointment";
-import { cancelAppointment, rescheduleAppointment } from "@/services/appointment.service";
+import { cancelAppointment, deleteAppointment, rescheduleAppointment } from "@/services/appointment.service";
 
 export const PUT = hospitalParamsHandler(async (hospitalId, _auth, request, id) => {
   const appointment = await Appointment.findOne({ _id: id, hospitalId });
@@ -32,5 +32,14 @@ export const PUT = hospitalParamsHandler(async (hospitalId, _auth, request, id) 
     return successResponse(result, "Appointment rescheduled");
   } catch (error) {
     return errorResponse(error instanceof Error ? error.message : "Reschedule failed");
+  }
+});
+
+export const DELETE = hospitalParamsHandler(async (hospitalId, _auth, _request, id) => {
+  try {
+    await deleteAppointment(id, hospitalId);
+    return successResponse(null, "Appointment deleted");
+  } catch (error) {
+    return errorResponse(error instanceof Error ? error.message : "Delete failed");
   }
 });

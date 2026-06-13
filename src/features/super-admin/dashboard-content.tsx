@@ -6,7 +6,6 @@ import {
   Building2,
   Building,
   Stethoscope,
-  Calendar,
   Users,
   ArrowRight,
   Plus,
@@ -24,7 +23,6 @@ const quickLinks = [
   { href: "/super-admin/hospitals/new", label: "Add Hospital", icon: Building2, description: "Register a new hospital" },
   { href: "/super-admin/hospitals", label: "Manage Hospitals", icon: Building, description: "View all hospitals" },
   { href: "/super-admin/doctors", label: "Manage Doctors", icon: Stethoscope, description: "Doctor activation status" },
-  { href: "/super-admin/appointments", label: "Appointments", icon: Calendar, description: "View & reschedule" },
 ];
 
 export function SuperAdminDashboardContent() {
@@ -55,11 +53,10 @@ export function SuperAdminDashboardContent() {
         </Button>
       </PageHeader>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <AdminStatCard title="Total Hospitals" value={stats?.totalHospitals ?? 0} icon={Building2} variant="blue" />
         <AdminStatCard title="Active Hospitals" value={stats?.activeHospitals ?? 0} icon={Building} variant="green" />
         <AdminStatCard title="Total Doctors" value={stats?.totalDoctors ?? 0} icon={Stethoscope} variant="purple" />
-        <AdminStatCard title="Appointments" value={stats?.totalAppointments ?? 0} icon={Calendar} variant="orange" />
         <AdminStatCard title="Patients" value={stats?.totalPatients ?? 0} icon={Users} variant="pink" />
       </div>
 
@@ -69,7 +66,7 @@ export function SuperAdminDashboardContent() {
           <CardDescription>Common super admin tasks</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {quickLinks.map((link) => (
               <Link
                 key={link.href}

@@ -6,12 +6,10 @@ import {
   LayoutDashboard,
   Building2,
   Stethoscope,
-  Calendar,
   BarChart3,
   Settings,
   X,
   Shield,
-  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { APP_NAME } from "@/lib/constants";
@@ -27,8 +25,6 @@ const navSections = [
     items: [
       { href: "/super-admin/hospitals", label: "Hospitals", icon: Building2 },
       { href: "/super-admin/doctors", label: "Doctors", icon: Stethoscope },
-      { href: "/super-admin/appointments", label: "Appointments", icon: Calendar },
-      { href: "/super-admin/prescriptions", label: "Prescriptions", icon: FileText },
     ],
   },
   {

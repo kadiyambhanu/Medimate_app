@@ -8,7 +8,6 @@ import {
   Stethoscope,
   Calendar,
   Clock,
-  FileText,
   Settings,
   X,
 } from "lucide-react";
@@ -32,10 +31,7 @@ const navSections = [
   },
   {
     label: "Patients",
-    items: [
-      { href: "/hospital/appointments", label: "Appointments", icon: Calendar },
-      { href: "/hospital/prescriptions", label: "Prescriptions", icon: FileText },
-    ],
+    items: [{ href: "/hospital/appointments", label: "Appointments", icon: Calendar }],
   },
   {
     label: "System",

@@ -136,6 +136,31 @@ export interface IDoctorSchedule extends Document {
   updatedAt: Date;
 }
 
+export type PaymentMethod = "UPI" | "PAY_AT_HOSPITAL";
+export type PaymentStatus = "PENDING" | "COMPLETED";
+
+export interface IPatientDetails {
+  name: string;
+  gender: "Male" | "Female" | "Other";
+  dateOfBirth: Date;
+  height: number;
+  weight: number;
+  diseaseName: string;
+}
+
+export interface PaymentReceiptData {
+  receiptId: string;
+  transactionId: string;
+  patientName: string;
+  doctorName: string;
+  hospitalName: string;
+  appointmentDate: string;
+  slotTime: string;
+  amount: number;
+  paymentMethod: string;
+  paidAt: string;
+}
+
 export interface IAppointment extends Document {
   _id: Types.ObjectId;
   userId: Types.ObjectId | IUser;
@@ -145,6 +170,13 @@ export interface IAppointment extends Document {
   slotTime: string;
   status: "BOOKED" | "COMPLETED" | "CANCELLED";
   notes?: string;
+  consultationFee?: number;
+  paymentMethod?: PaymentMethod;
+  paymentStatus?: PaymentStatus;
+  paymentReceiptId?: string;
+  upiTransactionId?: string;
+  paidAt?: Date;
+  patientDetails?: IPatientDetails;
   createdAt: Date;
 }
 

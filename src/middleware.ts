@@ -31,6 +31,11 @@ function getDefaultRoute(role?: string): string {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (pathname === "/super-admin/appointments" || pathname.startsWith("/super-admin/appointments/")) {
+    return NextResponse.redirect(new URL("/super-admin", request.url));
+  }
+
   const token = request.cookies.get(COOKIE_NAME)?.value;
 
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));

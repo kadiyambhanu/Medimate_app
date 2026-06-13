@@ -8,6 +8,8 @@ import {
   isSlotInPast,
   normalizeAppointmentDate,
 } from "@/services/slot.service";
+import { formatReceiptNumber } from "@/lib/upi";
+import { APPOINTMENT_FEE } from "@/lib/constants";
 import type { AppointmentInput, AppointmentRescheduleInput } from "@/validations/appointment";
 
 async function validateBooking(
@@ -89,6 +91,18 @@ export async function createAppointment(userId: string, input: AppointmentInput)
   const appointmentDate = normalizeAppointmentDate(input.appointmentDate);
   await validateBooking(input.doctorId, input.hospitalId, appointmentDate, input.slotTime);
 
+  const isUpiPaid =
+    input.paymentMethod === "UPI" && input.paymentCompleted && input.upiTransactionId;
+  const paidAt = isUpiPaid ? new Date() : undefined;
+
+  let paymentReceiptId: string | undefined;
+  if (isUpiPaid) {
+    const paidCount = await Appointment.countDocuments({ paymentStatus: "COMPLETED" });
+    paymentReceiptId = formatReceiptNumber(paidCount + 1);
+  }
+
+  const consultationFee = APPOINTMENT_FEE;
+
   const appointment = await Appointment.create({
     userId,
     hospitalId: input.hospitalId,
@@ -97,12 +111,32 @@ export async function createAppointment(userId: string, input: AppointmentInput)
     slotTime: input.slotTime,
     notes: input.notes,
     status: "BOOKED",
+    consultationFee,
+    paymentMethod: input.paymentMethod,
+    paymentStatus: isUpiPaid ? "COMPLETED" : "PENDING",
+    paymentReceiptId,
+    upiTransactionId: isUpiPaid ? input.upiTransactionId : undefined,
+    paidAt,
+    patientDetails: {
+      name: input.patientDetails.name.trim(),
+      gender: input.patientDetails.gender,
+      dateOfBirth: normalizeAppointmentDate(input.patientDetails.dateOfBirth),
+      height: input.patientDetails.height,
+      weight: input.patientDetails.weight,
+      diseaseName: input.patientDetails.diseaseName.trim(),
+    },
   });
+
+  const paymentLabel = isUpiPaid
+    ? `UPI payment of ₹${consultationFee} received. Receipt: ${paymentReceiptId}`
+    : "Pay at hospital on visit";
 
   await Notification.create({
     userId,
-    title: "Appointment Booked",
-    message: `Your appointment on ${appointmentDate.toDateString()} at ${input.slotTime} has been confirmed.`,
+    title: isUpiPaid ? "Appointment Confirmed" : "Appointment Booked",
+    message: isUpiPaid
+      ? `Payment of ₹${consultationFee} confirmed. Your appointment with the doctor on ${appointmentDate.toDateString()} at ${input.slotTime} is confirmed. Receipt: ${paymentReceiptId}.`
+      : `Your appointment on ${appointmentDate.toDateString()} at ${input.slotTime} has been booked. Appointment fee: ₹${consultationFee}. ${paymentLabel}.`,
     type: "system",
   });
 
@@ -172,6 +206,22 @@ export async function cancelAppointment(appointmentId: string, userId?: string, 
     userId: appointment.userId,
     title: "Appointment Cancelled",
     message: `Your appointment on ${appointment.appointmentDate.toDateString()} at ${appointment.slotTime} has been cancelled.`,
+    type: "system",
+  });
+
+  return appointment;
+}
+
+export async function deleteAppointment(appointmentId: string, hospitalId: string) {
+  const appointment = await Appointment.findOneAndDelete({ _id: appointmentId, hospitalId });
+  if (!appointment) {
+    throw new Error("Appointment not found");
+  }
+
+  await Notification.create({
+    userId: appointment.userId,
+    title: "Appointment Removed",
+    message: `Your appointment on ${appointment.appointmentDate.toDateString()} at ${appointment.slotTime} has been removed by the hospital.`,
     type: "system",
   });
 
